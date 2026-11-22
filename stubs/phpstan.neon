@@ -1,0 +1,22 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/nesbot/carbon/extension.neon
+
+parameters:
+    paths:
+        - app/
+        - bootstrap/app.php
+        - database/
+        - routes/
+
+    # config/ is left out: the framework's own config files use env() values PHPStan cannot type.
+
+    # Start at 7 on an existing project, 8+ on a new one. Raise it, never lower it.
+    level: 7
+
+    # Keep the baseline empty. Add one only with the user's approval, and only shrink it afterwards.
+    # includes: [phpstan-baseline.neon]
+
+    checkMissingCallableSignature: true
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: true

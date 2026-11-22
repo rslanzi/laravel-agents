@@ -1,0 +1,46 @@
+{
+    "scripts": {
+        "lint": [
+            "@php vendor/bin/rector process --ansi",
+            "@php vendor/bin/pint --ansi"
+        ],
+        "lint:check": [
+            "@php vendor/bin/rector process --dry-run --ansi",
+            "@php vendor/bin/pint --test --ansi"
+        ],
+        "types:check": [
+            "@php vendor/bin/phpstan analyse --ansi --memory-limit=2G"
+        ],
+        "test:arch": [
+            "@php artisan test --compact tests/Unit/ArchitectureTest.php"
+        ],
+        "test:unit": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test --compact --parallel"
+        ],
+        "test:coverage": [
+            "@php artisan config:clear --ansi",
+            "@php vendor/bin/pest --parallel --coverage --min=80"
+        ],
+        "test:mutate": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php vendor/bin/pest --mutate --parallel --min=70"
+        ],
+        "deps:check": [
+            "composer audit"
+        ],
+        "check": [
+            "Composer\\Config::disableProcessTimeout",
+            "@lint:check",
+            "@types:check",
+            "@test:coverage",
+            "@deps:check"
+        ],
+        "fix": [
+            "Composer\\Config::disableProcessTimeout",
+            "@lint",
+            "@types:check",
+            "@test:unit"
+        ]
+    }
+}
