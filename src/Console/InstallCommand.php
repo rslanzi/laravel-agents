@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Rslanzi\LaravelAgents\Console;
 
+use Dotenv\Dotenv;
 use JsonException;
 use InvalidArgumentException;
 use Illuminate\Console\Command;
@@ -163,7 +164,7 @@ final class InstallCommand extends Command
 
         $result = Process::path(base_path())
             ->forever()
-            ->env(['COMPOSER_NO_INTERACTION' => '1'])
+            ->env([...$this->projectEnvironment(), 'COMPOSER_NO_INTERACTION' => '1'])
             ->run([...$composer->findComposer(), 'fix', '--no-interaction'], function (string $type, string $output): void {
                 $this->output->write($output);
             });
@@ -176,11 +177,31 @@ final class InstallCommand extends Command
     }
 
     /**
+     * Laravel exported the project's .env into this process, and child processes inherit it. Unset those
+     * variables so composer fix runs the tests with phpunit.xml's values (APP_ENV=testing, in-memory
+     * database) instead of the local ones, and artisan commands read .env themselves.
+     *
+     * @return array<string, false>
+     */
+    private function projectEnvironment(): array
+    {
+        $file = app()->environmentFilePath();
+
+        if (! is_file($file)) {
+            return [];
+        }
+
+        $keys = array_keys(Dotenv::parse((string) file_get_contents($file)));
+
+        return array_fill_keys(array_map(strval(...), $keys), false);
+    }
+
+    /**
      * @param  list<string>  $arguments
      */
     private function artisanProcess(array $arguments, bool $interactive = false): bool
     {
-        $process = Process::path(base_path())->forever();
+        $process = Process::path(base_path())->forever()->env($this->projectEnvironment());
         $command = [PHP_BINARY, 'artisan', ...$arguments];
 
         if ($interactive && SymfonyProcess::isTtySupported()) {
@@ -301,7 +322,7 @@ final class InstallCommand extends Command
     {
         $result = Process::path(base_path())
             ->timeout(900)
-            ->env(['COMPOSER_NO_INTERACTION' => '1'])
+            ->env([...$this->projectEnvironment(), 'COMPOSER_NO_INTERACTION' => '1'])
             ->run([...$composer->findComposer(), ...$arguments, '--no-interaction']);
 
         if ($result->failed()) {
