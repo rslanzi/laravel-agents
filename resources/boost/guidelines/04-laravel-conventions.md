@@ -3,7 +3,7 @@
 ## Do things the Laravel way
 
 - After `php artisan make:*`, move domain classes into their context namespace under `app/Domain/{Context}`.
-- Validate input with Form Requests in `app/Domain/{Context}/Http/Requests` (controllers) or `validate()` rules (Livewire). Validation rules are arrays, not pipe strings; reusable rules are Rule classes. A Form Request exposes a `toData()` method that returns the DTO for the Action. Read input with `input()`, `string()`, `integer()`, never `get()`.
+- Validate input with Form Requests in `app/Domain/{Context}/Http/Requests` (controllers) or `validate()` rules (Livewire). Validation rules are arrays, not pipe strings; reusable rules are Rule classes. A Form Request only validates (no `authorize()`: the controller calls `Gate::authorize()`) and exposes a `toData()` method that returns the DTO for the Action. Read input with `input()`, `string()`, `integer()`, never `get()`.
 - Authorize with Policies and Gates, never with ad-hoc `if ($user->role === ...)` checks. No code path is "covered" by a missing check.
 - Read configuration with `config()`. `env()` is only allowed inside `config/` files.
 - Use queues for slow or external work (mail, webhooks, PDFs, third-party APIs). Jobs are idempotent, safe to retry and to run concurrently (or `ShouldBeUnique`), do not depend on order (or use `Bus::chain()`), and delegate writes to Actions.

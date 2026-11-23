@@ -31,7 +31,7 @@ final readonly class ConfirmOrderAction
         private OrderStateMachine $stateMachine,
     ) {}
 
-    public function handle(ConfirmOrderData $data): Order
+    public function execute(ConfirmOrderData $data): Order
     {
         return DB::transaction(function () use ($data): Order {
             $order = Order::query()->lockForUpdate()->findOrFail($data->orderId);
@@ -47,7 +47,7 @@ final readonly class ConfirmOrderAction
 }
 ```
 
-- `final readonly class`, dependencies injected through the constructor, a single public `handle()` method with full type hints.
+- `final readonly class`, dependencies injected through the constructor, a single public `execute()` method with full type hints. (`handle()` stays the method of jobs, listeners and commands.)
 - Accept a DTO (or scalar ids) instead of a `Request` or an array of mixed input.
 - Throw a named domain exception when a business rule is violated; never return `false` or `null` to signal failure.
 
@@ -76,7 +76,9 @@ final class ConfirmOrderController
         ConfirmOrderRequest $request,
         ConfirmOrderAction $confirmOrder,
     ): RedirectResponse {
-        $confirmOrder->handle($request->toData());
+        Gate::authorize('confirm', $order);
+
+        $confirmOrder->execute($request->toData());
 
         return redirect()->route('ordering.orders.show', ['order' => $order]);
     }
@@ -88,11 +90,6 @@ namespace App\Domain\Ordering\Http\Requests;
 
 final class ConfirmOrderRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->can('confirm', $this->order()) ?? false;
-    }
-
     /** @return array<string, list<string>> */
     public function rules(): array
     {
@@ -117,7 +114,7 @@ final class ConfirmOrderRequest extends FormRequest
 }
 ```
 
-The Form Request turns HTTP input into a DTO, so the Action never sees a `Request`. Controllers are single-action (`__invoke`), final, named after the singular resource, and extend no base class. Routes are declared one by one, never with `Route::resource`.
+The Form Request only validates and turns HTTP input into a DTO, so the Action never sees a `Request`. It has no `authorize()` method: the controller authorizes with `Gate::authorize()` against a Policy, before calling the Action. The Form Request validates before the controller runs, so a forbidden user can see validation errors first; when that matters, authorize on the route instead (`->can('confirm', 'order')`), which runs before validation. Controllers are single-action (`__invoke`), final, named after the singular resource, and extend no base class. Routes are declared one by one, never with `Route::resource`.
 
 ## Event
 

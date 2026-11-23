@@ -73,7 +73,7 @@ Le guideline vietano all'agente `Co-Authored-By`, footer "Generated with..." e l
 
 ## Fonti
 
-Le regole su PHP, Laravel, SQL, SOLID e clean code seguono l'[handbook IxDF](https://handbook.ixdf.org/library/backend/conventions--laravel.html), adattato all'architettura a moduli. Dove le due cose divergono, il pacchetto tiene le convenzioni di Laravel: le Action espongono `handle()`, le Form Request autorizzano e stanno in `Http/Requests`, le factory stanno nel modulo, le eccezioni tengono il suffisso `Exception`, le chiavi di traduzione sono le frasi inglesi e le viste sono in kebab-case.
+Le regole su PHP, Laravel, SQL, SOLID e clean code seguono l'[handbook IxDF](https://handbook.ixdf.org/library/backend/conventions--laravel.html), adattato all'architettura a moduli. Dove le due cose divergono, il pacchetto tiene le sue scelte: ogni applicazione è divisa in moduli, le Form Request stanno in `Http/Requests` (senza `authorize()`, come in IxDF), le factory stanno nel modulo, le eccezioni tengono il suffisso `Exception`, le chiavi di traduzione sono le frasi inglesi e le viste sono in kebab-case.
 
 ## Personalizzare per progetto
 

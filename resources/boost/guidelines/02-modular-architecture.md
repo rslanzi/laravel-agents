@@ -28,7 +28,7 @@ app/
 │   │   ├── Exceptions/            # domain exceptions with meaningful names
 │   │   ├── Http/                  # the module's delivery layer (outer shell)
 │   │   │   ├── Controllers/       # thin controllers, one Action or Query per method
-│   │   │   ├── Requests/          # Form Requests: validation + authorization, build the DTO
+│   │   │   ├── Requests/          # Form Requests: validation only, build the DTO
 │   │   │   ├── Resources/         # Eloquent API Resources
 │   │   │   ├── Middleware/        # only middleware specific to this module
 │   │   │   ├── routes.php         # this module's web routes (web middleware)
@@ -103,10 +103,10 @@ Create only the sub-folders a context actually needs (YAGNI). An empty `StateMac
 
 ## Building blocks
 
-- **Action**: `final readonly class`, constructor injection, one public `handle()` with full types; takes a DTO or scalar ids, never a `Request`; wraps multi-step writes in `DB::transaction()`; throws a named domain exception instead of returning `false`/`null`.
+- **Action**: `final readonly class`, constructor injection, one public `execute()` with full types; takes a DTO or scalar ids, never a `Request`; wraps multi-step writes in `DB::transaction()`; throws a named domain exception instead of returning `false`/`null`.
 - **DTO**: `final readonly class` with promoted public properties.
 - **Controller**: single-action (`__invoke`), final, in `Http/Controllers`; calls one Action or Query.
-- **Form Request**: validation and authorization; `toData()` builds the DTO, so the Action never sees a `Request`.
+- **Form Request**: validation only, no `authorize()` (the controller calls `Gate::authorize()`); `toData()` builds the DTO, so the Action never sees a `Request`.
 - **Query**: reads and returns data, never writes; `query()`, selected columns, eager loading.
 
 Follow the `domain-building-blocks` skill for complete, annotated examples of each.
@@ -119,7 +119,7 @@ Before writing or changing a contract, its implementations or its fakes, follow 
 
 ## Architecture tests are the source of truth
 
-`tests/Unit/ArchitectureTest.php` (published by `php artisan agents:install`) enforces these rules: module core (every folder but `Http` and `Livewire`, plus `Domain/Shared`) independent from delivery, thin final controllers that extend no base class, Form Requests in the module `Http` layer, final readonly Actions with `handle()`, readonly DTOs, final events, enums, exceptions, contracts with `@post` and a contract test, Filament grouped by context, no Eloquent writes in delivery code, Jobs or Listeners, at most `User` in `App\Models`.
+`tests/Unit/ArchitectureTest.php` (published by `php artisan agents:install`) enforces these rules: module core (every folder but `Http` and `Livewire`, plus `Domain/Shared`) independent from delivery, thin final controllers that extend no base class, Form Requests in the module `Http` layer without `authorize()`, final readonly Actions with `execute()`, readonly DTOs, final events, enums, exceptions, contracts with `@post` and a contract test, Filament grouped by context, no Eloquent writes in delivery code, Jobs or Listeners, at most `User` in `App\Models`.
 
 Keep it up to date. When you add a context, a contract or an invariant, extend the arch rules in the same change, and run it before moving models or adding contexts:
 

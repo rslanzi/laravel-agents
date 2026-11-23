@@ -16,6 +16,8 @@ All notable changes to this package are documented here. The format follows [Kee
 
 ### Changed
 
+- Actions expose `execute()` instead of `handle()`; the architecture test checks it.
+- Form Requests only validate and have no `authorize()`: controllers authorize with `Gate::authorize()` against a Policy. The architecture test checks it.
 - Module routes are loaded from `Http/routes.php` (web) and `Http/api.php` (api, `/api` prefix) with `base_path()`.
 - The published CI runs `composer check` on the lowest PHP version allowed by `composer.json` and on PHP 8.5, with mutation testing in a separate pull request job; Composer cache and the frontend build work on projects without `package-lock.json`.
 - `agents:install` restores `composer.json` and `composer.lock` when Composer fails, keeps the formatting of `composer.json`, finds Composer the way Laravel does and reports a missing or invalid `composer.json`.
