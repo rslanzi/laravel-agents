@@ -30,7 +30,17 @@ These principles decide every design choice in this project. When two rules seem
 - Remove duplication of knowledge (business rules, state transitions, validation rules), not duplication of shape. Two similar-looking snippets that change for different reasons are not duplication.
 - Reuse existing components, Actions, Queries and factory states before writing new ones. Search the codebase first.
 
-## Naming and readability
+## Clean code
 
-- Name Actions as verb + noun + `Action` (`ConfirmOrderAction`), Events in past tense (`OrderConfirmed`), Listeners as what they do (`SendConfirmationEmail`), Queries as what they return (`OverdueInvoices`), Exceptions as what went wrong (`ProductOutOfStockException`).
-- PHPDoc explains *why*, not *what* the code already says.
+- Names are meaningful, pronounceable and searchable: no magic numbers (use named constants or enums), no abbreviations, one word per concept (`getUser`, not `getUserInfo`/`getUserData`), no context the class already gives (`Car::$make`, not `Car::$carMake`).
+- Functions do one thing at one level of abstraction, and their name says what they do, side effects included (`createOrReturnProfile()`, not `getProfile()`). Two arguments or fewer; with more, group them in a DTO or value object.
+- No boolean flag parameters: write two methods (`createFile()`, `createTempFile()`).
+- Encapsulate conditionals in named methods (`$article->isPublished()`), avoid negative names (`isPresent()`, not `isNotMissing()`), and replace `switch`/`instanceof` on a type with polymorphism or an enum method.
+- No global state, no singletons, no mutable data shared between calls: pass dependencies in.
+- Use `===`/`!==`, `??` for defaults, and typed default arguments instead of `?:` inside the body.
+- No fluent setters returning `$this`, except in builders.
+- Comments explain *why*. If a comment explains *what*, rename or extract instead.
+
+## Naming
+
+- Name Actions as verb + noun + `Action` (`ConfirmOrderAction`), Events in past tense (`OrderConfirmed`), Listeners as what they do (`SendConfirmationEmail`), Queries as what they return (`OverdueInvoices`), Exceptions as what went wrong (`ProductOutOfStockException`), enums in the singular (`OrderStatus`) with PascalCase cases.
