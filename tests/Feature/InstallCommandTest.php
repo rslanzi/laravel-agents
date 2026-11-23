@@ -309,3 +309,15 @@ it('fails when composer fix fails', function (): void {
         ->expectsOutputToContain('composer fix reported problems')
         ->assertFailed();
 });
+
+it('runs composer fix without the variables loaded from .env', function (): void {
+    file_put_contents($this->projectFile('.env'), "APP_ENV=local\nDB_CONNECTION=sqlite\n");
+    file_put_contents($this->projectFile('boost.json'), '{"packages": []}');
+
+    $this->artisan('agents:install', ['--no-tools' => true])->assertSuccessful();
+
+    Process::assertRan(fn (PendingProcess $process): bool => in_array('fix', (array) $process->command, true)
+        && $process->environment['APP_ENV'] === false
+        && $process->environment['DB_CONNECTION'] === false
+        && $process->environment['COMPOSER_NO_INTERACTION'] === '1');
+});
