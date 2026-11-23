@@ -35,7 +35,7 @@ It runs these steps in order:
 2. Publishes the files below without overwriting existing ones, and adds the composer scripts.
 3. Runs `php artisan boost:install` when the project has no `boost.json` yet. It asks which agents and packages to configure: select `rslanzi/laravel-agents`. In non-interactive mode (`--no-interaction`, CI) this step is skipped.
 4. Adds `rslanzi/laravel-agents` to `boost.json` and runs `php artisan boost:update`, which writes the guidelines and skills into `AGENTS.md` and `CLAUDE.md`.
-5. Runs `composer fix` (Rector, Pint, PHPStan, tests). The command fails if `composer fix` reports problems; fix them and run `composer fix` again.
+5. Runs `composer fix` (Rector, Pint, PHPStan, tests). The command fails if `composer fix` reports problems; fix them and run `composer fix` again. On a fresh application, build the frontend first (`npm install && npm run build`): Laravel's example test renders the welcome page, which needs the Vite manifest.
 
 Running it again is safe: existing files and scripts are kept, Boost is only updated, and `composer fix` changes nothing on clean code.
 
