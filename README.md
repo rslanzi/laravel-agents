@@ -13,12 +13,10 @@ Guidelines for AI coding agents (Claude Code, Codex, Cursor, ...) and quality to
 
 ```bash
 composer require --dev rslanzi/laravel-agents
-composer require --dev laravel/boost          # if it is not installed yet
-
-php artisan boost:install                     # select rslanzi/laravel-agents among the packages
-php artisan agents:install                    # tooling and configs
-composer fix                                  # Rector, Pint, PHPStan, Pest
+php artisan agents:install
 ```
+
+`agents:install` does the whole setup: it installs Laravel Boost and the dev tools, runs `boost:install` (select `rslanzi/laravel-agents` among the packages), publishes the configs, runs `boost:update` and finally `composer fix`.
 
 To update: `composer update rslanzi/laravel-agents && php artisan boost:update`, after reading [UPGRADE.md](UPGRADE.md).
 

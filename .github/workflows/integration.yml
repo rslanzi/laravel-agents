@@ -48,6 +48,13 @@ jobs:
       - name: Create the application
         run: composer create-project "laravel/laravel:^${{ matrix.laravel }}.0" app --prefer-dist --no-interaction --no-progress
 
+      # agents:install ends with composer fix, whose tests render the welcome page: it needs the Vite manifest.
+      - name: Build frontend assets
+        working-directory: app
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+          npm run build
+
       - name: Install the package from this checkout
         working-directory: app
         run: |
@@ -64,12 +71,6 @@ jobs:
           git init -q && git add -A && git -c user.email=ci@example.com -c user.name=ci commit -qm installed
           php artisan agents:install --no-interaction
           git diff --exit-code
-
-      - name: Build frontend assets
-        working-directory: app
-        run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
-          npm run build
 
       # A fresh skeleton covers 33% of app/ and no test declares covers(): write the first test, as a project would.
       - name: Add a first test for the User model
