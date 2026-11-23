@@ -14,15 +14,15 @@ Commits and pull requests are authored by the developer who runs the agent, neve
 Format: `type(scope): subject`
 
 - **type**: `feat`, `fix`, `refactor`, `test`, `docs`, `perf`, `build`, `ci`, `chore`, `revert`. Use `feat!` / `fix!` or a `BREAKING CHANGE:` footer for breaking changes.
-- **scope**: the bounded context in kebab-case (`booking`, `billing`), or `deps`, `ci`, `arch` for cross-cutting changes.
-- **subject**: imperative, lower case, no final period, max ~72 characters: `feat(booking): allow staff to override overlapping appointments`.
+- **scope**: the bounded context in kebab-case (`ordering`, `billing`), or `deps`, `ci`, `arch` for cross-cutting changes.
+- **subject**: imperative, lower case, no final period, max ~72 characters: `feat(ordering): allow partial shipment of confirmed orders`.
 - **body** (optional): why the change was made and what it affects, wrapped at 72 columns. Reference the ADR (`Refs: ADR-0007`) and the issue (`Closes #123`).
 - One logical change per commit. Tests go in the same commit as the code they cover. Formatting-only or Rector-only changes go in a separate `style:`/`refactor:` commit when they touch unrelated files.
 - Never commit generated files, `.env`, `vendor/`, `node_modules/`, coverage reports or local tool caches.
 
 ## Branches
 
-`type/short-description`, e.g. `feat/booking-overlap-override`, `fix/billing-rounding`. Branch from the default branch, rebase on it before opening the PR, never rewrite history that others have pulled.
+`type/short-description`, e.g. `feat/ordering-partial-shipment`, `fix/billing-rounding`. Branch from the default branch, rebase on it before opening the PR, never rewrite history that others have pulled.
 
 ## Pull requests
 

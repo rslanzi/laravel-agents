@@ -13,7 +13,7 @@ Four tools guard every change. They are not optional and they are not negotiable
 
 Run them in this order, because each step can change what the next one sees:
 
-1. **Rector** rewrites code: `vendor/bin/rector process` (only on the files you touched when the project is large: `vendor/bin/rector process app/Domain/Booking`).
+1. **Rector** rewrites code: `vendor/bin/rector process` (only on the files you touched when the project is large: `vendor/bin/rector process app/Domain/Ordering`).
 2. **Pint** formats the result: `vendor/bin/pint --dirty --format agent`.
 3. **PHPStan** checks types: `vendor/bin/phpstan analyse --memory-limit=2G`.
 4. **Pest** runs the tests: during the TDD loop the narrowest filter, at the end the affected folders plus `tests/Unit/ArchitectureTest.php`, and the full suite with `--parallel` before handing over.
@@ -22,7 +22,7 @@ Prefer the composer scripts when they exist:
 
 - `composer fix`: Rector, Pint, PHPStan, tests (use it before finishing a task);
 - `composer check`: the same checks in read-only mode (`--dry-run`, `--test`) with the coverage threshold, plus `composer audit`, as CI runs them;
-- `composer test:mutate`: mutation testing with its minimum score (run it on the module you changed before opening a PR: `vendor/bin/pest --mutate --parallel tests/Feature/Domain/Booking`);
+- `composer test:mutate`: mutation testing with its minimum score (run it on the module you changed before opening a PR: `vendor/bin/pest --mutate --parallel tests/Feature/Domain/Ordering`);
 - `composer types:check`, `composer test:arch`, `composer test:coverage` for single steps.
 
 ## Continuous integration
@@ -41,7 +41,7 @@ Prefer the composer scripts when they exist:
 
 ## Common PHPStan fixes in Laravel
 
-- Collections and relations: add generics in PHPDoc (`@return Collection<int, Appointment>`, `@return BelongsTo<Clinic, $this>`).
+- Collections and relations: add generics in PHPDoc (`@return Collection<int, Order>`, `@return BelongsTo<Customer, $this>`).
 - `__()` returns `array|string`: return it from a method typed `: string` instead of mixing it with `null` in a ternary.
 - `$request->user()` can be null: authorize first, or use `$request->user()` behind a route with `auth` and assert with a typed helper.
 - Config values: cast at the edge (`(int) config('x.y')`) or use `Config::integer()`, `Config::string()`.
