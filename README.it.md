@@ -88,6 +88,10 @@ composer format      # Pint
 
 Il workflow `Integration` installa il pacchetto in un'applicazione Laravel nuova, lancia `agents:install` due volte (la seconda non deve cambiare nulla), poi `composer check` e la mutation testing.
 
+## Versioni di PHP
+
+PHP 8.3, 8.4 e 8.5 sono testati a ogni modifica, con Laravel 12 e 13. PHP 8.6 gira sulla build nightly in un job che non blocca, così le incompatibilità emergono prima del rilascio.
+
 ## Licenza
 
 MIT, vedi [LICENSE](LICENSE).
