@@ -33,7 +33,7 @@ beforeEach(function (): void {
 it('publishes the tooling stubs into the project', function (): void {
     $this->artisan('agents:install', ['--no-tools' => true])->assertSuccessful();
 
-    foreach (['pint.json', 'rector.php', 'phpstan.neon', 'tests/Pest.php', 'tests/Unit/ArchitectureTest.php', '.claude/settings.json', '.github/workflows/ci.yml', '.github/pull_request_template.md', '.ai/guidelines/20-project-contexts.md', 'docs/adr/README.md'] as $file) {
+    foreach (['pint.json', 'rector.php', 'phpstan.neon', 'tests/Pest.php', 'tests/Unit/ArchitectureTest.php', '.claude/settings.json', '.github/workflows/ci.yml', '.github/pull_request_template.md', '.ai/guidelines/20-project-contexts.md', 'docs/adr/README.md', 'docs/architecture.md', 'CHANGELOG.md'] as $file) {
         expect($this->projectFile($file))->toBeFile();
     }
 });
