@@ -24,7 +24,7 @@
         ],
         "test:mutate": [
             "Composer\\Config::disableProcessTimeout",
-            "@php vendor/bin/pest --mutate --parallel --min=70"
+            "@php vendor/bin/pest --mutate --parallel --covered-only --min=70"
         ],
         "deps:check": [
             "composer audit --abandoned=report"
