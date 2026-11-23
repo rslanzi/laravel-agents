@@ -8,11 +8,8 @@ Linee guida per agenti AI (Claude Code, Codex, Cursor, ...) e tooling di qualit�
 
 ## Installazione
 
-Il repository è privato, quindi composer lo scarica da GitHub con le tue credenziali (`gh auth login` oppure un token in `composer config --global github-oauth.github.com <token>`).
-
 ```bash
-composer config repositories.laravel-agents vcs https://github.com/rslanzi/laravel-agents
-composer require --dev rslanzi/laravel-agents:dev-main
+composer require --dev rslanzi/laravel-agents
 composer require --dev laravel/boost          # se non c'è già
 
 php artisan boost:install                     # scegli rslanzi/laravel-agents tra i pacchetti
@@ -20,7 +17,7 @@ php artisan agents:install                    # tooling e config
 composer fix                                  # Rector, Pint, PHPStan, Pest
 ```
 
-Quando esiste un tag di release (es. `v0.1.0`), usa `rslanzi/laravel-agents:^0.1` al posto di `dev-main`, così gli aggiornamenti arrivano solo con nuove release.
+Il pacchetto è su [Packagist](https://packagist.org/packages/rslanzi/laravel-agents). Finché non c'è una release taggata, installa il ramo principale con `composer require --dev rslanzi/laravel-agents:dev-main`.
 
 Se Boost è già configurato, `agents:install` aggiunge `rslanzi/laravel-agents` a `boost.json`; poi basta `php artisan boost:update`.
 
