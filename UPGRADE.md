@@ -4,6 +4,11 @@ Breaking changes and how to adapt a project, newest first. Each version also lis
 
 After every update run `composer update rslanzi/laravel-agents`, `php artisan boost:update` and `composer check`.
 
+## Upgrading to 2.0.0 from 1.x
+
+- **PHP 8.5 and Laravel 13 are required.** Upgrade the project first; on PHP 8.3 or 8.4, or on Laravel 12, keep `"rslanzi/laravel-agents": "^1.0"`.
+- The published CI (`.github/workflows/ci.yml`) still runs on the lowest PHP version allowed by the project's `composer.json` and on PHP 8.5: nothing to change there.
+
 ## Upgrading to 1.0.0 from dev-main
 
 Projects that installed the package from `dev-main` before 1.0.0 (switch to `^1.0` as described in [docs/installation.md](docs/installation.md)):

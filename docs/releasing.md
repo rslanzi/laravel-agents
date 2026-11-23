@@ -11,7 +11,7 @@ composer analyse     # PHPStan
 composer format      # Pint
 ```
 
-The `Tests` workflow runs the suite on PHP 8.3 to 8.5 with Laravel 12 and 13, plus a non-blocking PHP 8.6 nightly job. The `Integration` workflow installs the package into a fresh Laravel application and runs `agents:install` twice (the second run must change nothing), then `composer check` and mutation testing.
+The `Tests` workflow runs the suite on PHP 8.5 with Laravel 13, with the lowest and the latest dependencies, plus a non-blocking PHP 8.6 nightly job. The `Integration` workflow installs the package into a fresh Laravel 13 application on PHP 8.5 (and 8.6 nightly, non-blocking) and runs `agents:install` twice (the second run must change nothing), then `composer check` and mutation testing.
 
 ## Commit messages
 

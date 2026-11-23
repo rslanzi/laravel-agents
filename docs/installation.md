@@ -2,7 +2,7 @@
 
 ## Requirements
 
-PHP 8.3 or later, Laravel 12 or 13, Composer 2.
+PHP 8.5 or later, Laravel 13, Composer 2. Projects on PHP 8.3 or 8.4, or on Laravel 12, can use version 1 (`^1.0`).
 
 ## Install
 
@@ -10,13 +10,13 @@ PHP 8.3 or later, Laravel 12 or 13, Composer 2.
 composer require --dev rslanzi/laravel-agents
 ```
 
-This adds `"rslanzi/laravel-agents": "^1.0"` to `require-dev`, so `composer update` takes new minor and patch versions but never a breaking one.
+This adds the current major version (for example `"rslanzi/laravel-agents": "^2.0"`) to `require-dev`, so `composer update` takes new minor and patch versions but never a breaking one.
 
 A project that installed the package from GitHub before it was on Packagist can drop the VCS repository and switch to the released version:
 
 ```bash
 composer config --unset repositories.laravel-agents
-composer require --dev rslanzi/laravel-agents:^1.0
+composer require --dev rslanzi/laravel-agents
 ```
 
 Then:
