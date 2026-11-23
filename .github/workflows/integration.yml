@@ -1,0 +1,84 @@
+name: Integration
+
+# Installs the package into a fresh Laravel application and runs the published quality gates,
+# so broken stubs, scripts or CI templates are caught before a release.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  fresh-app:
+    name: Fresh Laravel ${{ matrix.laravel }} on PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.3'
+            laravel: '12'
+          - php: '8.3'
+            laravel: '13'
+          - php: '8.4'
+            laravel: '13'
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: package
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pdo_sqlite, intl
+          coverage: pcov
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Create the application
+        run: composer create-project "laravel/laravel:^${{ matrix.laravel }}.0" app --prefer-dist --no-interaction --no-progress
+
+      - name: Install the package from this checkout
+        working-directory: app
+        run: |
+          composer config repositories.local '{"type": "path", "url": "../package", "options": {"symlink": false}}'
+          composer require --dev "rslanzi/laravel-agents:@dev" laravel/boost --no-interaction --no-progress
+
+      - name: Run agents:install
+        working-directory: app
+        run: php artisan agents:install --no-interaction
+
+      - name: Run it again (must change nothing)
+        working-directory: app
+        run: |
+          git init -q && git add -A && git -c user.email=ci@example.com -c user.name=ci commit -qm installed
+          php artisan agents:install --no-interaction
+          git diff --exit-code
+
+      - name: Build frontend assets
+        working-directory: app
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+          npm run build
+
+      - name: Apply Rector and Pint once
+        working-directory: app
+        run: composer lint
+
+      - name: Quality gates
+        working-directory: app
+        run: composer check
+
+      - name: Mutation testing
+        working-directory: app
+        run: composer test:mutate
+
+      - name: Standalone AGENTS.md
+        working-directory: app
+        run: php artisan agents:markdown --path=AGENTS.standalone.md && test -s AGENTS.standalone.md

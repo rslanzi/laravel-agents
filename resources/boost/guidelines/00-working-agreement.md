@@ -5,7 +5,7 @@
 Before writing code:
 
 0. Respect the agent boundaries below: know what needs the user's confirmation before you start.
-1. Read this file and any `.ai/rules/` file whose globs match the paths you will touch.
+1. Read the project-specific guidelines (`.ai/guidelines/`, and the `.ai/rules/` files whose globs match the paths you will touch, when that folder exists).
 2. Find the bounded context the change belongs to (`app/Domain/{Context}`) and read its `README.md`. If none fits, propose a new context to the user before creating it.
 3. Look at sibling files and reuse existing Actions, Queries, factories and components.
 4. Use Laravel Boost `search-docs` for version-specific APIs, and `database-schema` before writing migrations or models.
@@ -18,8 +18,7 @@ While writing code:
 Before finishing:
 
 7. Run Rector, Pint, PHPStan and Pest in this order (`composer fix` if defined), including `tests/Unit/ArchitectureTest.php`. All must be green, without ignores or skipped tests.
-8. If the change involves an architectural decision (see "Architecture Decision Records"), write or update the ADR in `docs/adr/` in the same change.
-   Update the module `README.md`, translations and API docs when the change touches what they describe.
+8. If the change involves an architectural decision (see "Architecture Decision Records"), write or update the ADR in `docs/adr/` in the same change. Update the module `README.md`, translations and API docs when the change touches what they describe.
 9. End with the final summary described below.
 
 ## Agent boundaries
@@ -28,7 +27,7 @@ What you may do on your own, what needs the user's confirmation, and how to repo
 
 ### Stop and ask before you
 
-- change dependencies (`composer require/remove`, `npm install <pkg>`) or upgrade a major version;
+- upgrade a major version of a dependency (adding or removing any dependency already needs approval);
 - create a new bounded context, a new top-level folder, or move models between contexts;
 - relax, skip or delete a test or an architecture rule;
 - edit an existing migration, or write a migration that drops or renames columns/tables or rewrites data;

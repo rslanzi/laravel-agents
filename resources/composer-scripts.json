@@ -14,7 +14,7 @@
         "test:arch": [
             "@php artisan test --compact tests/Unit/ArchitectureTest.php"
         ],
-        "test:unit": [
+        "test:all": [
             "@php artisan config:clear --ansi",
             "@php artisan test --compact --parallel"
         ],
@@ -40,7 +40,7 @@
             "Composer\\Config::disableProcessTimeout",
             "@lint",
             "@types:check",
-            "@test:unit"
+            "@test:all"
         ]
     }
 }

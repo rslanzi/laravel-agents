@@ -21,13 +21,13 @@ Run them in this order, because each step can change what the next one sees:
 Prefer the composer scripts when they exist:
 
 - `composer fix`: Rector, Pint, PHPStan, tests (use it before finishing a task);
-- `composer check`: the same checks in read-only mode (`--dry-run`, `--test`) with the coverage threshold, plus `composer audit`, as CI runs them;
-- `composer test:mutate`: mutation testing with its minimum score (run it on the module you changed before opening a PR: `vendor/bin/pest --mutate --parallel tests/Feature/Domain/Ordering`);
-- `composer types:check`, `composer test:arch`, `composer test:coverage` for single steps.
+- `composer check`: the same checks in read-only mode (`--dry-run`, `--test`) with the coverage threshold, plus `composer audit`: exactly what the CI `quality` job runs;
+- `composer test:mutate`: mutation testing with its minimum score, run by a separate CI job on pull requests (locally, on the module you changed: `vendor/bin/pest --mutate --parallel tests/Feature/Domain/Ordering`);
+- `composer types:check`, `composer test:arch`, `composer test:coverage`, `composer test:all` for single steps.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every pull request and on `main`: `lint:check` (Rector dry-run, Pint test), `types:check` (PHPStan), `test:coverage` (Pest with minimum coverage), `test:mutate` (minimum mutation score), `deps:check` (`composer audit`). A PR is mergeable only when CI is green; make the job a required status check in the repository's branch protection.
+`.github/workflows/ci.yml` has two jobs, on the lowest PHP version `composer.json` allows. `quality` runs `composer check` on every pull request and on `main`; `mutation` runs `composer test:mutate` on pull requests. A PR is mergeable only when both are green; make them required status checks in the repository's branch protection.
 
 ## Rules
 
@@ -39,10 +39,4 @@ Prefer the composer scripts when they exist:
 - **Keep tests fast.** In-memory SQLite (or a dedicated test database), `QUEUE_CONNECTION=sync`, `CACHE_STORE=array`, `MAIL_MAILER=array`, low `BCRYPT_ROUNDS` in `phpunit.xml`. Tests must pass with `--parallel`.
 - **CI runs the same commands.** What passes locally with `composer check` must pass in CI; do not add CI-only exceptions.
 
-## Common PHPStan fixes in Laravel
-
-- Collections and relations: add generics in PHPDoc (`@return Collection<int, Order>`, `@return BelongsTo<Customer, $this>`).
-- `__()` returns `array|string`: return it from a method typed `: string` instead of mixing it with `null` in a ternary.
-- `$request->user()` can be null: authorize first, or use `$request->user()` behind a route with `auth` and assert with a typed helper.
-- Config values: cast at the edge (`(int) config('x.y')`) or use `Config::integer()`, `Config::string()`.
-- Model attributes: document them with `@property` PHPDoc only when Larastan cannot infer them from migrations.
+When PHPStan reports errors, follow the `fixing-phpstan-errors` skill.

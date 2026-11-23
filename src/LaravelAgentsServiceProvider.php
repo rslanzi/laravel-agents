@@ -20,5 +20,16 @@ final class LaravelAgentsServiceProvider extends ServiceProvider
             InstallCommand::class,
             AgentsMarkdownCommand::class,
         ]);
+
+        // `php artisan vendor:publish --tag=agents-ci --force` re-publishes a single group after an upgrade.
+        foreach (Package::STUB_GROUPS as $group => $files) {
+            $paths = [];
+
+            foreach ($files as $file) {
+                $paths[Package::stubsPath() . '/' . $file] = $this->app->basePath($file);
+            }
+
+            $this->publishes($paths, ['agents', "agents-{$group}"]);
+        }
     }
 }
