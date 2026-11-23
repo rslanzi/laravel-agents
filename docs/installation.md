@@ -19,23 +19,25 @@ composer config --unset repositories.laravel-agents
 composer require --dev rslanzi/laravel-agents
 ```
 
-Then:
+Then run the whole setup with one command:
 
 ```bash
-composer require --dev laravel/boost          # if it is not installed yet
-
-php artisan boost:install                     # select rslanzi/laravel-agents among the packages
-php artisan agents:install                    # tooling and configs
-composer fix                                  # Rector, Pint, PHPStan, Pest
+php artisan agents:install
 ```
 
-If Boost is already configured, `agents:install` adds `rslanzi/laravel-agents` to `boost.json`; then run `php artisan boost:update`.
-
-Without Boost, `php artisan agents:markdown` writes a complete `AGENTS.md` with every guideline and skill inline.
+Without Boost, use `php artisan agents:install --no-boost`, then `php artisan agents:markdown` writes a complete `AGENTS.md` with every guideline and skill inline.
 
 ## `agents:install`
 
-It installs Pest, Larastan, Rector and rector-laravel (Pint ships with Laravel), publishes the files below without overwriting existing ones, and adds the composer scripts.
+It runs these steps in order:
+
+1. Installs Laravel Boost, Pest, Larastan, Rector and rector-laravel with Composer (Pint ships with Laravel), skipping those already in `composer.json`.
+2. Publishes the files below without overwriting existing ones, and adds the composer scripts.
+3. Runs `php artisan boost:install` when the project has no `boost.json` yet. It asks which agents and packages to configure: select `rslanzi/laravel-agents`. In non-interactive mode (`--no-interaction`, CI) this step is skipped.
+4. Adds `rslanzi/laravel-agents` to `boost.json` and runs `php artisan boost:update`, which writes the guidelines and skills into `AGENTS.md` and `CLAUDE.md`.
+5. Runs `composer fix` (Rector, Pint, PHPStan, tests). The command fails if `composer fix` reports problems; fix them and run `composer fix` again.
+
+Running it again is safe: existing files and scripts are kept, Boost is only updated, and `composer fix` changes nothing on clean code.
 
 | Group | Files |
 | --- | --- |
@@ -50,6 +52,8 @@ It installs Pest, Larastan, Rector and rector-laravel (Pint ships with Laravel),
 | `--only=<group>` | publish only one group of files; repeat it for several |
 | `--dry-run` | show what would change, write nothing |
 | `--no-tools` | do not run `composer require` for the tools |
+| `--no-boost` | do not install, configure or update Laravel Boost |
+| `--no-fix` | do not run `composer fix` at the end |
 | `--force` | overwrite existing configs and composer scripts |
 
 On a project that uses PHPUnit, `agents:install` removes `phpunit/phpunit` from `require-dev` because Pest brings its own version; existing PHPUnit tests keep running under Pest. If Composer fails, `composer.json` and `composer.lock` are restored.
