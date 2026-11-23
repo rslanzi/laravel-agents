@@ -152,18 +152,20 @@ test('presentation and async code delegate Eloquent writes to Actions', function
 });
 
 foreach (domainLayer('Http/Controllers') as $namespace) {
-    arch("controllers are thin and final: {$namespace}")
+    arch("controllers are thin, final and extend nothing: {$namespace}")
         ->expect($namespace)
         ->toBeFinal()
+        ->toExtendNothing()
         ->toHaveSuffix('Controller')
         ->not->toUse(DB::class);
 }
 
 foreach (domainLayer('Http/Requests') as $namespace) {
-    arch("form requests live in the module Http layer: {$namespace}")
+    arch("form requests only validate: {$namespace}")
         ->expect($namespace)
         ->toExtend(FormRequest::class)
-        ->toHaveSuffix('Request');
+        ->toHaveSuffix('Request')
+        ->not->toHaveMethod('authorize');
 }
 
 foreach (domainLayer('Actions') as $namespace) {
@@ -171,7 +173,7 @@ foreach (domainLayer('Actions') as $namespace) {
         ->expect($namespace)
         ->toBeFinal()
         ->toBeReadonly()
-        ->toHaveMethod('handle');
+        ->toHaveMethod('execute');
 }
 
 foreach (domainLayer('DTO') as $namespace) {
@@ -184,6 +186,12 @@ foreach (domainLayer('Enums') as $namespace) {
     arch("enums are enums: {$namespace}")
         ->expect($namespace)
         ->toBeEnums();
+}
+
+foreach (domainLayer('Events') as $namespace) {
+    arch("events are final: {$namespace}")
+        ->expect($namespace)
+        ->toBeFinal();
 }
 
 foreach (domainLayer('Exceptions') as $namespace) {

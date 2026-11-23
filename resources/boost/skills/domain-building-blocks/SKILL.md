@@ -23,6 +23,7 @@ use App\Domain\Ordering\Events\OrderConfirmed;
 use App\Domain\Ordering\Models\Order;
 use App\Domain\Ordering\StateMachines\OrderStateMachine;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 
 final readonly class ConfirmOrderAction
 {
@@ -30,7 +31,7 @@ final readonly class ConfirmOrderAction
         private OrderStateMachine $stateMachine,
     ) {}
 
-    public function handle(ConfirmOrderData $data): Order
+    public function execute(ConfirmOrderData $data): Order
     {
         return DB::transaction(function () use ($data): Order {
             $order = Order::query()->lockForUpdate()->findOrFail($data->orderId);
@@ -38,7 +39,7 @@ final readonly class ConfirmOrderAction
             $this->stateMachine->transition($order, OrderStatus::Confirmed);
 
             // OrderConfirmed implements ShouldDispatchAfterCommit: listeners run only if the transaction commits.
-            OrderConfirmed::dispatch($order->id);
+            Event::dispatch(new OrderConfirmed($order->id));
 
             return $order;
         });
@@ -46,7 +47,7 @@ final readonly class ConfirmOrderAction
 }
 ```
 
-- `final readonly class`, dependencies injected through the constructor, a single public `handle()` method with full type hints.
+- `final readonly class`, dependencies injected through the constructor, a single public `execute()` method with full type hints. (`handle()` stays the method of jobs, listeners and commands.)
 - Accept a DTO (or scalar ids) instead of a `Request` or an array of mixed input.
 - Throw a named domain exception when a business rule is violated; never return `false` or `null` to signal failure.
 
@@ -69,13 +70,17 @@ namespace App\Domain\Ordering\Http\Controllers;
 
 final class ConfirmOrderController
 {
+    // Route parameters first, then the Request, then other dependencies.
     public function __invoke(
+        Order $order,
         ConfirmOrderRequest $request,
         ConfirmOrderAction $confirmOrder,
     ): RedirectResponse {
-        $order = $confirmOrder->handle($request->toData());
+        Gate::authorize('confirm', $order);
 
-        return to_route('ordering.orders.show', $order);
+        $confirmOrder->execute($request->toData());
+
+        return redirect()->route('ordering.orders.show', ['order' => $order]);
     }
 }
 ```
@@ -85,11 +90,6 @@ namespace App\Domain\Ordering\Http\Requests;
 
 final class ConfirmOrderRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->can('confirm', $this->order()) ?? false;
-    }
-
     /** @return array<string, list<string>> */
     public function rules(): array
     {
@@ -114,7 +114,18 @@ final class ConfirmOrderRequest extends FormRequest
 }
 ```
 
-The Form Request turns HTTP input into a DTO, so the Action never sees a `Request`. Single-action controllers (`__invoke`) are preferred; use resource controllers only for plain CRUD.
+The Form Request only validates and turns HTTP input into a DTO, so the Action never sees a `Request`. It has no `authorize()` method: the controller authorizes with `Gate::authorize()` against a Policy, before calling the Action. The Form Request validates before the controller runs, so a forbidden user can see validation errors first; when that matters, authorize on the route instead (`->can('confirm', 'order')`), which runs before validation. Controllers are single-action (`__invoke`), final, named after the singular resource, and extend no base class. Routes are declared one by one, never with `Route::resource`.
+
+## Event
+
+```php
+final readonly class OrderConfirmed implements ShouldDispatchAfterCommit
+{
+    public function __construct(public int $orderId) {}
+}
+```
+
+Dispatch with `Event::dispatch(new OrderConfirmed(...))`. Add `SerializesModels` only when the event carries models to queued listeners, `InteractsWithSockets` only for broadcasting (a broadcast event cannot be `readonly`, because that trait declares a writable property).
 
 ## Query
 
