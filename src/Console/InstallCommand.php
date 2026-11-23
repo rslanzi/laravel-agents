@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Rslanzi\LaravelAgents\Console;
 
-use stdClass;
+use JsonException;
+use InvalidArgumentException;
 use Illuminate\Console\Command;
+use Illuminate\Support\Composer;
 use Rslanzi\LaravelAgents\Package;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Process;
-use Symfony\Component\Finder\SplFileInfo;
+use Rslanzi\LaravelAgents\ComposerJson;
 
 final class InstallCommand extends Command
 {
@@ -27,44 +29,102 @@ final class InstallCommand extends Command
         'driftingly/rector-laravel',
     ];
 
-    public const string PACKAGE = 'rslanzi/laravel-agents';
-
     /** @var string */
     protected $signature = 'agents:install
+        {--only=* : Publish only these stub groups (quality, tests, ci, claude, docs); repeat the option for several}
         {--force : Overwrite config files and composer scripts that already exist}
+        {--dry-run : Show what would change without touching the project}
         {--no-tools : Do not install the dev tools with composer}';
 
     /** @var string */
     protected $description = 'Publish the quality tooling (Pint, Rector, PHPStan, Pest, CI, agent settings) without overwriting existing files';
 
-    public function handle(Filesystem $filesystem): int
+    public function handle(Filesystem $filesystem, Composer $composer): int
     {
-        if (! $this->option('no-tools') && ! $this->installTools()) {
+        $groups = $this->selectedGroups();
+
+        if ($groups === null) {
             return self::FAILURE;
         }
 
-        $this->publishStubs($filesystem);
+        $composerPath = base_path('composer.json');
+
+        if (! $filesystem->exists($composerPath)) {
+            $this->components->error('No composer.json found in ' . base_path() . '. Run this command from a Laravel project.');
+
+            return self::FAILURE;
+        }
+
+        try {
+            $project = ComposerJson::parse($filesystem->get($composerPath));
+        } catch (InvalidArgumentException $exception) {
+            $this->components->error($exception->getMessage());
+
+            return self::FAILURE;
+        }
+
+        if ($this->isDryRun()) {
+            $this->components->warn('Dry run: nothing will be written.');
+        }
+
+        if (! $this->option('no-tools') && ! $this->installTools($filesystem, $composer, $project)) {
+            return self::FAILURE;
+        }
+
+        $this->publishStubs($filesystem, $groups);
         $this->mergeComposerScripts($filesystem);
         $boostConfigured = $this->registerInBoost($filesystem);
+
+        if ($this->isDryRun()) {
+            return self::SUCCESS;
+        }
 
         $this->newLine();
         $this->components->info('Done. Next steps:');
         $this->components->bulletList([
             $boostConfigured
-                ? 'Run <comment>php artisan boost:update</comment> to load the guidelines into AGENTS.md and CLAUDE.md.'
-                : 'Run <comment>php artisan boost:install</comment> and select <comment>rslanzi/laravel-agents</comment> to load the guidelines.',
+                ? 'Run <comment>php artisan boost:update</comment> to load the guidelines and skills into AGENTS.md and CLAUDE.md.'
+                : 'Run <comment>php artisan boost:install</comment> and select <comment>rslanzi/laravel-agents</comment> to load the guidelines and skills.',
             'Without Boost, run <comment>php artisan agents:markdown</comment> to write a standalone AGENTS.md.',
             'Describe your modules in <comment>.ai/guidelines/20-project-contexts.md</comment>.',
-            'Run <comment>composer fix</comment> and commit the result.',
+            'Run <comment>composer fix</comment> and commit the result. <comment>composer check</comment> needs 80% coverage: on a fresh app, start with a test for the User model that declares <comment>covers(User::class)</comment> (mutation testing needs it).',
         ]);
 
         return self::SUCCESS;
     }
 
-    private function installTools(): bool
+    /**
+     * @return list<string>|null the stub groups to publish, or null when an unknown group was asked for
+     */
+    private function selectedGroups(): ?array
     {
-        $composer = $this->readComposerJson();
-        $installed = array_keys(array_merge($composer['require'] ?? [], $composer['require-dev'] ?? []));
+        /** @var list<string> $only */
+        $only = array_values(array_filter((array) $this->option('only')));
+        $known = array_keys(Package::STUB_GROUPS);
+
+        if ($only === []) {
+            return $known;
+        }
+
+        $unknown = array_diff($only, $known);
+
+        if ($unknown !== []) {
+            $this->components->error('Unknown group(s): ' . implode(', ', $unknown) . '. Available: ' . implode(', ', $known) . '.');
+
+            return null;
+        }
+
+        return array_values(array_unique($only));
+    }
+
+    private function isDryRun(): bool
+    {
+        return (bool) $this->option('dry-run');
+    }
+
+    private function installTools(Filesystem $filesystem, Composer $composer, ComposerJson $project): bool
+    {
+        $installed = $project->packages();
         $missing = array_values(array_diff(self::TOOLS, $installed));
 
         if ($missing === []) {
@@ -73,34 +133,76 @@ final class InstallCommand extends Command
             return true;
         }
 
-        if (in_array('pestphp/pest', $missing, true) && in_array('phpunit/phpunit', $installed, true)) {
-            $this->components->info('Removing phpunit/phpunit (Pest brings its own).');
+        $removePhpunit = in_array('pestphp/pest', $missing, true) && in_array('phpunit/phpunit', $installed, true);
 
-            if (! $this->composer(['remove', '--dev', '--no-update', 'phpunit/phpunit'])) {
-                return false;
+        if ($this->isDryRun()) {
+            $this->components->twoColumnDetail('composer require --dev', implode(' ', $missing));
+
+            if ($removePhpunit) {
+                $this->components->twoColumnDetail('composer remove --dev', 'phpunit/phpunit (Pest brings its own)');
             }
+
+            return true;
+        }
+
+        $backup = $this->backupComposerFiles($filesystem);
+
+        if ($removePhpunit) {
+            $this->components->info('Removing phpunit/phpunit (Pest brings its own).');
         }
 
         $this->components->info('Installing ' . implode(', ', $missing) . '...');
 
-        if (! $this->composer(['require', '--dev', '--with-all-dependencies', ...$missing])) {
-            $this->components->error('Composer failed. Install the tools by hand: composer require --dev ' . implode(' ', $missing));
+        $succeeded = (! $removePhpunit || $this->composer($composer, ['remove', '--dev', '--no-update', 'phpunit/phpunit']))
+            && $this->composer($composer, ['require', '--dev', '--with-all-dependencies', ...$missing]);
 
-            return false;
+        if ($succeeded) {
+            return true;
         }
 
-        return true;
+        $this->restoreComposerFiles($filesystem, $backup);
+        $this->components->error('Composer failed, composer.json and composer.lock were restored. Install the tools by hand: composer require --dev -W ' . implode(' ', $missing));
+
+        return false;
+    }
+
+    /**
+     * @return array<string, string> file path => original content
+     */
+    private function backupComposerFiles(Filesystem $filesystem): array
+    {
+        $backup = [];
+
+        foreach (['composer.json', 'composer.lock'] as $file) {
+            $path = base_path($file);
+
+            if ($filesystem->exists($path)) {
+                $backup[$path] = $filesystem->get($path);
+            }
+        }
+
+        return $backup;
+    }
+
+    /**
+     * @param  array<string, string>  $backup
+     */
+    private function restoreComposerFiles(Filesystem $filesystem, array $backup): void
+    {
+        foreach ($backup as $path => $content) {
+            $filesystem->put($path, $content);
+        }
     }
 
     /**
      * @param  list<string>  $arguments
      */
-    private function composer(array $arguments): bool
+    private function composer(Composer $composer, array $arguments): bool
     {
         $result = Process::path(base_path())
             ->timeout(900)
             ->env(['COMPOSER_NO_INTERACTION' => '1'])
-            ->run(['composer', ...$arguments, '--no-interaction']);
+            ->run([...$composer->findComposer(), ...$arguments, '--no-interaction']);
 
         if ($result->failed()) {
             $this->line($result->errorOutput());
@@ -109,61 +211,64 @@ final class InstallCommand extends Command
         return $result->successful();
     }
 
-    private function publishStubs(Filesystem $filesystem): void
+    /**
+     * @param  list<string>  $groups
+     */
+    private function publishStubs(Filesystem $filesystem, array $groups): void
     {
-        $stubs = collect($filesystem->allFiles(Package::stubsPath(), true))
-            ->sortBy(fn (SplFileInfo $file): string => $file->getRelativePathname());
+        foreach ($groups as $group) {
+            foreach (Package::STUB_GROUPS[$group] as $relative) {
+                $target = base_path($relative);
+                $exists = $filesystem->exists($target);
 
-        foreach ($stubs as $stub) {
-            $relative = str_replace('\\', '/', $stub->getRelativePathname());
-            $target = base_path($relative);
+                if ($exists && ! $this->option('force')) {
+                    $this->components->twoColumnDetail($relative, '<fg=yellow>skipped (exists)</>');
 
-            if ($filesystem->exists($target) && ! $this->option('force')) {
-                $this->components->twoColumnDetail($relative, '<fg=yellow>skipped (exists)</>');
+                    continue;
+                }
 
-                continue;
+                if (! $this->isDryRun()) {
+                    $filesystem->ensureDirectoryExists(dirname($target));
+                    $filesystem->copy(Package::stubsPath() . '/' . $relative, $target);
+                }
+
+                $this->components->twoColumnDetail($relative, $exists ? '<fg=green>overwritten</>' : '<fg=green>published</>');
             }
-
-            $filesystem->ensureDirectoryExists(dirname($target));
-            $filesystem->copy($stub->getPathname(), $target);
-            $this->components->twoColumnDetail($relative, '<fg=green>published</>');
         }
     }
 
     private function mergeComposerScripts(Filesystem $filesystem): void
     {
-        // Decoded as objects, so empty JSON objects ({}) survive the rewrite unchanged.
-        $composer = json_decode((string) $filesystem->get(base_path('composer.json')), flags: JSON_THROW_ON_ERROR);
-        $kit = json_decode((string) $filesystem->get(Package::path('resources/composer-scripts.json')), flags: JSON_THROW_ON_ERROR);
+        $path = base_path('composer.json');
+        $project = ComposerJson::parse($filesystem->get($path));
 
-        $composer->scripts ??= new stdClass;
-        $added = [];
+        /** @var array{scripts: array<string, list<string>>} $kit */
+        $kit = json_decode($filesystem->get(Package::path('resources/composer-scripts.json')), true, flags: JSON_THROW_ON_ERROR);
+        $scripts = [];
 
-        foreach (get_object_vars($kit->scripts) as $name => $commands) {
-            if (property_exists($composer->scripts, $name) && ! $this->option('force')) {
+        foreach ($kit['scripts'] as $name => $commands) {
+            if ($project->hasScript($name) && ! $this->option('force')) {
                 $this->components->twoColumnDetail("composer {$name}", '<fg=yellow>skipped (exists)</>');
 
                 continue;
             }
 
-            $composer->scripts->{$name} = $commands;
-            $added[] = $name;
+            $scripts[$name] = $commands;
         }
 
-        if ($added === []) {
+        if ($scripts === []) {
             return;
         }
 
-        $filesystem->put(
-            base_path('composer.json'),
-            json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n",
-        );
+        if (! $this->isDryRun()) {
+            $filesystem->put($path, $project->withScripts($scripts)->source());
+        }
 
-        $this->components->twoColumnDetail('composer scripts', '<fg=green>' . implode(', ', $added) . '</>');
+        $this->components->twoColumnDetail('composer scripts', '<fg=green>' . implode(', ', array_keys($scripts)) . '</>');
     }
 
     /**
-     * Adds the package to boost.json so `boost:update` includes its guidelines without asking.
+     * Adds the package to boost.json so `boost:update` includes its guidelines and skills without asking.
      */
     private function registerInBoost(Filesystem $filesystem): bool
     {
@@ -173,24 +278,34 @@ final class InstallCommand extends Command
             return false;
         }
 
-        $boost = json_decode((string) $filesystem->get($path), flags: JSON_THROW_ON_ERROR);
-        $packages = isset($boost->packages) && is_array($boost->packages) ? $boost->packages : [];
+        try {
+            $boost = json_decode($filesystem->get($path), flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            $this->components->twoColumnDetail('boost.json', '<fg=yellow>skipped (invalid JSON)</>');
 
-        if (! in_array(self::PACKAGE, $packages, true)) {
-            $boost->packages = [...$packages, self::PACKAGE];
-            $filesystem->put($path, json_encode($boost, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
-            $this->components->twoColumnDetail('boost.json', '<fg=green>rslanzi/laravel-agents enabled</>');
+            return true;
         }
 
-        return true;
-    }
+        if (! $boost instanceof \stdClass) {
+            $this->components->twoColumnDetail('boost.json', '<fg=yellow>skipped (not a JSON object)</>');
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function readComposerJson(): array
-    {
-        /** @var array<string, mixed> */
-        return json_decode((string) file_get_contents(base_path('composer.json')), true, flags: JSON_THROW_ON_ERROR);
+            return true;
+        }
+
+        $packages = isset($boost->packages) && is_array($boost->packages) ? $boost->packages : [];
+
+        if (in_array(Package::NAME, $packages, true)) {
+            return true;
+        }
+
+        $boost->packages = [...$packages, Package::NAME];
+
+        if (! $this->isDryRun()) {
+            $filesystem->put($path, json_encode($boost, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
+        }
+
+        $this->components->twoColumnDetail('boost.json', '<fg=green>' . Package::NAME . ' enabled</>');
+
+        return true;
     }
 }

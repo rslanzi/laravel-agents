@@ -31,3 +31,29 @@ it('refuses to overwrite an existing AGENTS.md without --force', function (): vo
 
     expect(file_get_contents($this->projectFile('AGENTS.md')))->toBe('mine');
 });
+
+it('overwrites an existing AGENTS.md with --force', function (): void {
+    file_put_contents($this->projectFile('AGENTS.md'), 'mine');
+
+    $this->artisan('agents:markdown', ['--force' => true])->assertSuccessful();
+
+    expect(file_get_contents($this->projectFile('AGENTS.md')))->toStartWith('# AGENTS.md');
+});
+
+it('accepts an absolute path', function (): void {
+    $target = $this->projectFile('docs/agents/AGENTS.md');
+
+    $this->artisan('agents:markdown', ['--path' => $target])->assertSuccessful();
+
+    expect($target)->toBeFile();
+});
+
+it('inlines the skills without their front matter', function (): void {
+    $this->artisan('agents:markdown')->assertSuccessful();
+
+    $markdown = (string) file_get_contents($this->projectFile('AGENTS.md'));
+
+    expect($markdown)
+        ->toContain('## Safe Database Migrations')
+        ->not->toContain("\nname: safe-migrations");
+});

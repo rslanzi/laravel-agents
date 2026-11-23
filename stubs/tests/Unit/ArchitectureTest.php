@@ -7,6 +7,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
+ * Module core layers: everything in a module except its delivery (Http, Livewire).
+ */
+const CORE_LAYERS = ['Actions', 'Contracts', 'Database', 'DTO', 'Enums', 'Events', 'Exceptions', 'Jobs', 'Listeners', 'Models', 'Queries', 'Services', 'Settings', 'StateMachines'];
+
+function projectPath(string $relative = ''): string
+{
+    return dirname(__DIR__, 2) . ($relative === '' ? '' : '/' . $relative);
+}
+
+/**
  * Namespaces of one layer across all modules, e.g. ['App\Domain\Ordering\Actions', ...].
  * Built from the folders that exist. Each namespace gets its own rule: Pest evaluates a list of
  * targets unreliably with not->toUse(), and an empty list fails.
@@ -18,13 +28,57 @@ function domainLayer(string ...$layers): array
     $namespaces = [];
 
     foreach ($layers as $layer) {
-        foreach (glob(dirname(__DIR__, 2) . '/app/Domain/*/' . $layer, GLOB_ONLYDIR) ?: [] as $directory) {
-            $relative = mb_substr($directory, mb_strlen(dirname(__DIR__, 2) . '/app/'));
+        foreach (glob(projectPath('app/Domain/*/' . $layer), GLOB_ONLYDIR) ?: [] as $directory) {
+            $relative = mb_substr($directory, mb_strlen(projectPath('app/')));
             $namespaces[] = 'App\\' . str_replace('/', '\\', $relative);
         }
     }
 
     return $namespaces;
+}
+
+/**
+ * Every PHP file under the given directories, at any depth (PHP's glob() has no recursive `**`).
+ *
+ * @return list<string>
+ */
+function phpFiles(string ...$directories): array
+{
+    $files = [];
+
+    foreach ($directories as $directory) {
+        if (! is_dir($directory)) {
+            continue;
+        }
+
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS));
+
+        foreach ($iterator as $file) {
+            if ($file instanceof SplFileInfo && $file->getExtension() === 'php') {
+                $files[] = $file->getPathname();
+            }
+        }
+    }
+
+    sort($files);
+
+    return $files;
+}
+
+/**
+ * The given layer folders of every module, e.g. app/Domain/Ordering/Http.
+ *
+ * @return list<string>
+ */
+function moduleDirectories(string ...$layers): array
+{
+    $directories = [];
+
+    foreach ($layers as $layer) {
+        array_push($directories, ...(glob(projectPath('app/Domain/*/' . $layer), GLOB_ONLYDIR) ?: []));
+    }
+
+    return $directories;
 }
 
 arch()->preset()->php();
@@ -34,24 +88,32 @@ arch('env() is only read in config files')
     ->expect('App')
     ->not->toUse('env');
 
-foreach (domainLayer('Actions', 'Models', 'Services', 'Queries', 'Events', 'Listeners', 'Jobs', 'DTO') as $namespace) {
+$delivery = [
+    Request::class,
+    FormRequest::class,
+    'Illuminate\Routing',
+    'Filament',
+    'Livewire',
+    'App\Http',
+    'App\Filament',
+    'App\Livewire',
+];
+
+foreach (domainLayer(...CORE_LAYERS) as $namespace) {
     arch("module core does not depend on delivery: {$namespace}")
         ->expect($namespace)
-        ->not->toUse([
-            Request::class,
-            FormRequest::class,
-            'Illuminate\Routing',
-            'Filament',
-            'Livewire',
-            'App\Http',
-            'App\Filament',
-            'App\Livewire',
-        ]);
+        ->not->toUse($delivery);
+}
+
+if (is_dir(projectPath('app/Domain/Shared'))) {
+    arch('the shared kernel does not depend on delivery')
+        ->expect('App\Domain\Shared')
+        ->not->toUse($delivery);
 }
 
 test('module core never imports a module delivery namespace', function (): void {
-    $violations = collect(glob(dirname(__DIR__, 2) . '/app/Domain/*/{Actions,Models,Services,Queries,Events,Listeners,Jobs,DTO}/*.php', GLOB_BRACE) ?: [])
-        ->filter(fn (string $file): bool => preg_match('#^use App.Domain.\w+.(Http|Livewire).#m', (string) file_get_contents($file)) === 1)
+    $violations = collect(phpFiles(...moduleDirectories(...CORE_LAYERS)))
+        ->filter(fn (string $file): bool => preg_match('#^use App\\\\Domain\\\\\w+\\\\(Http|Livewire)\\\\#m', (string) file_get_contents($file)) === 1)
         ->values()
         ->all();
 
@@ -59,11 +121,11 @@ test('module core never imports a module delivery namespace', function (): void 
 });
 
 test('Filament resources, pages and widgets are grouped by context', function (): void {
-    $contexts = array_map(basename(...), glob(dirname(__DIR__, 2) . '/app/Domain/*', GLOB_ONLYDIR) ?: []);
+    $contexts = array_map(basename(...), glob(projectPath('app/Domain/*'), GLOB_ONLYDIR) ?: []);
     $allowedAtRoot = ['Dashboard.php'];
 
     $violations = collect(['Resources', 'Pages', 'Widgets'])
-        ->flatMap(fn (string $type): array => glob(dirname(__DIR__, 2) . "/app/Filament/{$type}/*") ?: [])
+        ->flatMap(fn (string $type): array => glob(projectPath("app/Filament/{$type}/*")) ?: [])
         ->reject(fn (string $path): bool => in_array(basename($path), $contexts, true) || in_array(basename($path), $allowedAtRoot, true))
         ->values()
         ->all();
@@ -72,17 +134,17 @@ test('Filament resources, pages and widgets are grouped by context', function ()
 });
 
 test('presentation and async code delegate Eloquent writes to Actions', function (): void {
-    $root = dirname(__DIR__, 2) . '/app';
-    $files = array_merge(
-        glob($root . '/Domain/*/{Http,Livewire,Jobs,Listeners}/**/*.php', GLOB_BRACE) ?: [],
-        glob($root . '/Domain/*/{Http,Livewire,Jobs,Listeners}/*.php', GLOB_BRACE) ?: [],
-        is_dir($root . '/Filament') ? array_map(strval(...), iterator_to_array(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/Filament', FilesystemIterator::SKIP_DOTS)))) : [],
-        is_dir($root . '/Livewire') ? array_map(strval(...), iterator_to_array(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/Livewire', FilesystemIterator::SKIP_DOTS)))) : [],
+    // Eloquent write calls only: save()/delete() without arguments, update()/create() with an attribute
+    // array, and the *OrCreate helpers. Storage::delete($path) or Cache calls do not match.
+    $eloquentWrite = '/(->(?:save|delete|forceDelete|restore|push)\(\)|->update\(\s*\[|::(?:query\(\)->)?create\(\s*\[|->(?:updateOrCreate|firstOrCreate|createMany|upsert|insert)\()/';
+
+    $files = phpFiles(
+        ...moduleDirectories('Http', 'Livewire', 'Jobs', 'Listeners'),
+        ...[projectPath('app/Filament'), projectPath('app/Livewire')],
     );
 
     $violations = collect($files)
-        ->filter(fn (string $file): bool => str_ends_with($file, '.php'))
-        ->filter(fn (string $file): bool => preg_match('/(::query\(\)->create\(|->(?:save|update|delete|forceDelete|restore)\()/', (string) file_get_contents($file)) === 1)
+        ->filter(fn (string $file): bool => preg_match($eloquentWrite, (string) file_get_contents($file)) === 1)
         ->values()
         ->all();
 
@@ -140,9 +202,10 @@ foreach (domainLayer('Contracts') as $namespace) {
 test('every contract method documents its behavior', function (): void {
     $violations = [];
 
-    foreach (glob(dirname(__DIR__, 2) . '/app/Domain/*/Contracts/*.php') ?: [] as $file) {
+    foreach (phpFiles(...moduleDirectories('Contracts')) as $file) {
         $source = (string) file_get_contents($file);
-        preg_match_all('#(/\*\*(?:(?!\*/).)*\*/)?\s*public function (\w+)#s', $source, $methods, PREG_SET_ORDER);
+        // PHPDoc, then optional attributes, then the method.
+        preg_match_all('#(/\*\*(?:(?!\*/).)*\*/)?\s*(?:\#\[[^\]]*\]\s*)*public function (\w+)#s', $source, $methods, PREG_SET_ORDER);
 
         foreach ($methods as $method) {
             if (! str_contains($method[1], '@post')) {
@@ -155,14 +218,13 @@ test('every contract method documents its behavior', function (): void {
 });
 
 test('every contract has a contract test', function (): void {
-    $root = dirname(__DIR__, 2);
     $missing = [];
 
-    foreach (glob($root . '/app/Domain/*/Contracts/*.php') ?: [] as $file) {
+    foreach (glob(projectPath('app/Domain/*/Contracts/*.php')) ?: [] as $file) {
         $context = basename(dirname($file, 2));
         $expected = "tests/Feature/Contracts/{$context}/" . basename($file, '.php') . 'Test.php';
 
-        if (! is_file($root . '/' . $expected)) {
+        if (! is_file(projectPath($expected))) {
             $missing[] = $expected;
         }
     }
@@ -170,8 +232,10 @@ test('every contract has a contract test', function (): void {
     expect($missing)->toBe([]);
 });
 
-test('only User lives in App\Models', function (): void {
-    expect(glob(dirname(__DIR__, 2) . '/app/Models/*.php'))->toBe([dirname(__DIR__, 2) . '/app/Models/User.php']);
+test('App\Models holds at most the User model', function (): void {
+    $models = array_map(basename(...), glob(projectPath('app/Models/*.php')) ?: []);
+
+    expect(array_diff($models, ['User.php']))->toBe([]);
 });
 
 // Add rules for real invariants and cross-module boundaries as the project grows, e.g.:
