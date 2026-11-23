@@ -36,8 +36,8 @@ One paragraph: the business capability this module owns and what it explicitly d
 
 ## Contracts
 
-- Provided: `StockReservationContract` implemented here for Ordering.
-- Required: `SmsGatewayContract`, bound in `AppServiceProvider`.
+- Provided: `StockReservationContract` for Ordering: reserves stock atomically, returns null without side effects when stock is short.
+- Required: `SmsGatewayContract` (sends one message or throws `SmsNotSentException`), bound in `AppServiceProvider`.
 
 ## Entry points
 
