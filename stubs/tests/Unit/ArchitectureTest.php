@@ -130,6 +130,46 @@ foreach (domainLayer('Exceptions') as $namespace) {
         ->toExtend(Exception::class);
 }
 
+foreach (domainLayer('Contracts') as $namespace) {
+    arch("contracts are interfaces: {$namespace}")
+        ->expect($namespace)
+        ->toBeInterfaces()
+        ->toHaveSuffix('Contract');
+}
+
+test('every contract method documents its behavior', function (): void {
+    $violations = [];
+
+    foreach (glob(dirname(__DIR__, 2) . '/app/Domain/*/Contracts/*.php') ?: [] as $file) {
+        $source = (string) file_get_contents($file);
+        preg_match_all('#(/\*\*(?:(?!\*/).)*\*/)?\s*public function (\w+)#s', $source, $methods, PREG_SET_ORDER);
+
+        foreach ($methods as $method) {
+            if (! str_contains($method[1], '@post')) {
+                $violations[] = basename($file, '.php') . '::' . $method[2] . '() has no @post in its PHPDoc';
+            }
+        }
+    }
+
+    expect($violations)->toBe([]);
+});
+
+test('every contract has a contract test', function (): void {
+    $root = dirname(__DIR__, 2);
+    $missing = [];
+
+    foreach (glob($root . '/app/Domain/*/Contracts/*.php') ?: [] as $file) {
+        $context = basename(dirname($file, 2));
+        $expected = "tests/Feature/Contracts/{$context}/" . basename($file, '.php') . 'Test.php';
+
+        if (! is_file($root . '/' . $expected)) {
+            $missing[] = $expected;
+        }
+    }
+
+    expect($missing)->toBe([]);
+});
+
 test('only User lives in App\Models', function (): void {
     expect(glob(dirname(__DIR__, 2) . '/app/Models/*.php'))->toBe([dirname(__DIR__, 2) . '/app/Models/User.php']);
 });

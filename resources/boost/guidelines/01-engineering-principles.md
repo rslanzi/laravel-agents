@@ -22,7 +22,7 @@ These principles decide every design choice in this project. When two rules seem
 
 - **Single Responsibility**: controllers, Livewire components and Filament resources only translate input and output; Actions hold one use case each; Queries only read; Services hold reusable domain computations without persistence.
 - **Open/Closed**: extend behaviour with new Actions, new enum cases, new listeners or new contract implementations, not by adding flags and `switch` branches to existing classes.
-- **Liskov Substitution**: every implementation of a `Contract` must honour the interface's documented behaviour, including exceptions thrown and transaction expectations. Fakes used in tests must behave like the real implementation.
+- **Liskov Substitution**: every implementation of a `Contract` (real, null or fake) honors its documented behavior: preconditions, postconditions, exceptions and events (see "behavioral contract"). A shared contract test proves it for each implementation.
 - **Interface Segregation**: contracts are small and owned by the consumer (the module that needs the capability defines the interface it needs, nothing more).
 - **Dependency Inversion**: depend on contracts for external systems (payment gateways, SMS, mail providers, other modules) and bind implementations in a service provider. Inject dependencies through the constructor; never call `app()`/`resolve()` inside domain code.
 

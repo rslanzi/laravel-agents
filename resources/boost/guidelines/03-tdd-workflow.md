@@ -25,6 +25,7 @@ Pure copy, styling or layout-only changes do not need new tests.
 | Cross-module screens (dashboard, layout) | Feature | `tests/Feature/{Livewire,Filament}/` | authorization, validation, that the right Action is called, response |
 | Cross-context flows | Feature | `tests/Feature/Domain/` | event chains between contexts |
 | Critical user journeys | Browser (Pest browser plugin) | `tests/Browser/` | a few end-to-end smoke paths only |
+| Contracts between modules | Contract (Pest dataset over every implementation and fake) | `tests/Feature/Contracts/{Context}/` | documented pre/postconditions, exceptions, events |
 | Architecture | Arch | `tests/Unit/ArchitectureTest.php` | module boundaries and conventions |
 
 Most tests are feature tests. Do not test Laravel itself (that a `belongsTo` works, that validation rule `required` works).
@@ -36,7 +37,7 @@ Most tests are feature tests. Do not test Laravel itself (that a `belongsTo` wor
 - Follow Arrange, Act, Assert, separated by a blank line. One behaviour per test.
 - Build data with factories and their states (`OrderFactory::new()->confirmed()->create()`). Check existing states before setting attributes by hand. Add a factory state when the same setup repeats.
 - Freeze time with `Carbon::setTestNow()` (or `$this->travelTo()`) whenever behaviour depends on dates, and reset it after.
-- Fake the edges, not the domain: `Mail::fake()`, `Notification::fake()`, `Queue::fake()`, `Event::fake([OnlyThisEvent::class])`, `Http::fake()`, and fake implementations of `Contracts`. Never mock the Action under test or Eloquent models.
+- Fake the edges, not the domain: `Mail::fake()`, `Notification::fake()`, `Queue::fake()`, `Event::fake([OnlyThisEvent::class])`, `Http::fake()`, and fake implementations of `Contracts` that pass the same contract test as the real one. Never mock the Action under test or Eloquent models.
 - Assert outcomes, not implementation: database state (`assertDatabaseHas`), dispatched events, thrown exceptions (`->throws(ProductOutOfStockException::class)`), HTTP status and redirects.
 - Tests must be independent and runnable in parallel. No reliance on test order, shared static state or real external services.
 - Do not delete or skip existing tests without the user's approval. A red test is a signal, not an obstacle.
