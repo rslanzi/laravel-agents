@@ -17,13 +17,15 @@ The `Tests` workflow runs the suite on PHP 8.5 with Laravel 13, with the lowest 
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/): they decide the next version and the changelog.
 
-| Type | Changelog section | Version bump |
-| --- | --- | --- |
-| `feat` | Features | minor |
-| `fix`, `perf` | Bug Fixes, Performance | patch |
-| `docs` | Guidelines and Documentation | patch |
-| `feat!`, `BREAKING CHANGE:` footer | Breaking changes | major |
-| `ci`, `test`, `refactor`, `chore`, `build`, `style` | hidden | none |
+| Type | Changelog section | Version bump (0.x) | Version bump (1.0 and later) |
+| --- | --- | --- | --- |
+| `feat` | Features | minor | minor |
+| `fix`, `perf` | Bug Fixes, Performance | patch | patch |
+| `docs` | Guidelines and Documentation | patch | patch |
+| `feat!`, `BREAKING CHANGE:` footer | Breaking changes | minor | major |
+| `ci`, `test`, `refactor`, `chore`, `build`, `style` | hidden | none | none |
+
+The package stays on 0.x until its API is stable. Moving to 1.0.0 is a deliberate choice: add `"release-as": "1.0.0"` to `release-please-config.json` for that release, then remove it.
 
 Guideline and skill changes change how agents work in every project, so they are `docs` at least, `feat` when they add a rule, and breaking when an existing project would fail its checks after updating. Every breaking change also gets a section in [UPGRADE.md](../UPGRADE.md).
 
