@@ -23,6 +23,9 @@ function snapshotProject(string $root): array
 }
 
 beforeEach(function (): void {
+    // agents:install shells out to composer and artisan: never run them for real in the suite.
+    Process::fake();
+
     file_put_contents($this->projectFile('composer.json'), json_encode([
         'name' => 'acme/app',
         'autoload-dev' => new stdClass,
@@ -243,4 +246,66 @@ it('publishes a pint.json that is safe on PHP 8.3', function (): void {
     $pint = json_decode((string) file_get_contents(Package::stubsPath() . '/pint.json'), true);
 
     expect($pint['rules']['mb_str_functions'])->toBeFalse();
+});
+
+it('runs boost:install, enables the package, runs boost:update and composer fix', function (): void {
+    Process::fake(function (PendingProcess $process): ProcessResult {
+        if (in_array('boost:install', (array) $process->command, true)) {
+            file_put_contents($this->projectFile('boost.json'), '{"agents": ["claude_code"]}');
+        }
+
+        return Process::result();
+    });
+
+    $this->artisan('agents:install', ['--no-tools' => true])->assertSuccessful();
+
+    foreach (['boost:install', 'boost:update', 'fix'] as $argument) {
+        Process::assertRan(fn (PendingProcess $process): bool => in_array($argument, (array) $process->command, true));
+    }
+
+    expect(json_decode((string) file_get_contents($this->projectFile('boost.json')), true)['packages'])->toBe(['rslanzi/laravel-agents']);
+});
+
+it('skips boost:install when Boost is already configured', function (): void {
+    file_put_contents($this->projectFile('boost.json'), '{"packages": []}');
+
+    $this->artisan('agents:install', ['--no-tools' => true])->assertSuccessful();
+
+    Process::assertNotRan(fn (PendingProcess $process): bool => in_array('boost:install', (array) $process->command, true));
+    Process::assertRan(fn (PendingProcess $process): bool => in_array('boost:update', (array) $process->command, true));
+});
+
+it('skips boost:install in non-interactive mode', function (): void {
+    $this->artisan('agents:install', ['--no-tools' => true, '--no-interaction' => true])
+        ->expectsOutputToContain('boost:install asks questions')
+        ->assertSuccessful();
+
+    Process::assertNotRan(fn (PendingProcess $process): bool => in_array('boost:install', (array) $process->command, true)
+        || in_array('boost:update', (array) $process->command, true));
+});
+
+it('installs Boost with the tools unless --no-boost is given', function (bool $noBoost): void {
+    $this->artisan('agents:install', ['--no-boost' => $noBoost, '--no-fix' => true])->assertSuccessful();
+
+    $requiresBoost = fn (PendingProcess $process): bool => in_array('require', (array) $process->command, true)
+        && in_array('laravel/boost', (array) $process->command, true);
+
+    $noBoost ? Process::assertNotRan($requiresBoost) : Process::assertRan($requiresBoost);
+})->with([false, true]);
+
+it('runs nothing after the tooling with --no-boost and --no-fix', function (): void {
+    $this->artisan('agents:install', ['--no-tools' => true, '--no-boost' => true, '--no-fix' => true])->assertSuccessful();
+
+    Process::assertNothingRan();
+});
+
+it('fails when composer fix fails', function (): void {
+    file_put_contents($this->projectFile('boost.json'), '{"packages": []}');
+    Process::fake(fn (PendingProcess $process): ProcessResult => in_array('fix', (array) $process->command, true)
+        ? Process::result(exitCode: 1)
+        : Process::result());
+
+    $this->artisan('agents:install', ['--no-tools' => true])
+        ->expectsOutputToContain('composer fix reported problems')
+        ->assertFailed();
 });
