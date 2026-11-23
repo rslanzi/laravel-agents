@@ -9,6 +9,9 @@ All notable changes to this package are documented here. The format follows [Kee
 - Boost skills in `resources/boost/skills/`: behavioral contracts, domain building blocks, safe migrations, API conventions, ADRs, module READMEs, performance, localization, PHPStan fixes. The guidelines keep a short summary of each, so the always-on context is about 30% smaller.
 - `agents:install --only=<group>` and `--dry-run`; stubs can be re-published per group with `vendor:publish --tag=agents-<group>`.
 - `tests/Unit/TranslationsTest.php` stub.
+- Rules from the IxDF handbook (PHP, Laravel, SQL, SOLID, clean code): a clean code section, PHP style, routing, controller, Eloquent, SQL and security rules in the guidelines, and a `laravel-conventions` skill with the details (routes, controllers, models and builders, factories, Artisan commands, events, jobs, Blade, config, SQL column types).
+- Architecture test: module controllers extend no base class, events are final.
+- Pint `explicit_string_variable` rule.
 - MIT license, PHPStan for the package, a CI matrix over PHP 8.3 to 8.5, Laravel 12 and 13 and lowest/stable dependencies, a non-blocking PHP 8.6 nightly job, and an integration workflow that installs the package into a fresh Laravel application on PHP 8.3 to 8.5 (and 8.6 nightly).
 
 ### Changed

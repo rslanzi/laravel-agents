@@ -23,6 +23,7 @@ use App\Domain\Ordering\Events\OrderConfirmed;
 use App\Domain\Ordering\Models\Order;
 use App\Domain\Ordering\StateMachines\OrderStateMachine;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 
 final readonly class ConfirmOrderAction
 {
@@ -38,7 +39,7 @@ final readonly class ConfirmOrderAction
             $this->stateMachine->transition($order, OrderStatus::Confirmed);
 
             // OrderConfirmed implements ShouldDispatchAfterCommit: listeners run only if the transaction commits.
-            OrderConfirmed::dispatch($order->id);
+            Event::dispatch(new OrderConfirmed($order->id));
 
             return $order;
         });
@@ -69,13 +70,15 @@ namespace App\Domain\Ordering\Http\Controllers;
 
 final class ConfirmOrderController
 {
+    // Route parameters first, then the Request, then other dependencies.
     public function __invoke(
+        Order $order,
         ConfirmOrderRequest $request,
         ConfirmOrderAction $confirmOrder,
     ): RedirectResponse {
-        $order = $confirmOrder->handle($request->toData());
+        $confirmOrder->handle($request->toData());
 
-        return to_route('ordering.orders.show', $order);
+        return redirect()->route('ordering.orders.show', ['order' => $order]);
     }
 }
 ```
@@ -114,7 +117,18 @@ final class ConfirmOrderRequest extends FormRequest
 }
 ```
 
-The Form Request turns HTTP input into a DTO, so the Action never sees a `Request`. Single-action controllers (`__invoke`) are preferred; use resource controllers only for plain CRUD.
+The Form Request turns HTTP input into a DTO, so the Action never sees a `Request`. Controllers are single-action (`__invoke`), final, named after the singular resource, and extend no base class. Routes are declared one by one, never with `Route::resource`.
+
+## Event
+
+```php
+final readonly class OrderConfirmed implements ShouldDispatchAfterCommit
+{
+    public function __construct(public int $orderId) {}
+}
+```
+
+Dispatch with `Event::dispatch(new OrderConfirmed(...))`. Add `SerializesModels` only when the event carries models to queued listeners, `InteractsWithSockets` only for broadcasting (a broadcast event cannot be `readonly`, because that trait declares a writable property).
 
 ## Query
 

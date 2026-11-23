@@ -9,7 +9,7 @@ Inside a module there are two rings:
 - **Delivery** (`Http/`, `Livewire/`, plus the context's folder in `app/Filament`): the outer shell. It validates, authorizes, builds DTOs and calls Actions and Queries.
 - **Core** (everything else: Actions, Models, Services, Queries, Events, Listeners, Jobs, DTO, Enums, Contracts...): the business logic. It never depends on the delivery ring, of its own module or of any other.
 
-Only app-wide wiring stays outside `app/Domain`: panel providers, the base controller, global middleware, layouts and screens that combine several modules.
+Only app-wide wiring stays outside `app/Domain`: panel providers, global middleware, layouts and screens that combine several modules.
 
 ## Layout
 
@@ -43,7 +43,7 @@ app/
 │   │   ├── StateMachines/         # allowed state transitions
 │   │   └── {AggregateRoot}.php    # only when the context has real invariants
 │   └── Shared/                    # shared kernel: value objects, enums and services used by many contexts
-├── Http/                          # only app-wide pieces: base Controller, global middleware
+├── Http/                          # only app-wide pieces: global middleware
 ├── Livewire/                      # only components that span several modules (layout, global search)
 ├── Filament/                      # admin panel, organized by context
 │   ├── Resources/{Context}/       # e.g. Resources/Ordering/Orders/OrderResource.php
@@ -119,7 +119,7 @@ Before writing or changing a contract, its implementations or its fakes, follow 
 
 ## Architecture tests are the source of truth
 
-`tests/Unit/ArchitectureTest.php` (published by `php artisan agents:install`) enforces these rules: module core (every folder but `Http` and `Livewire`, plus `Domain/Shared`) independent from delivery, thin final controllers, Form Requests in the module `Http` layer, final readonly Actions with `handle()`, readonly DTOs, enums, exceptions, contracts with `@post` and a contract test, Filament grouped by context, no Eloquent writes in delivery code, Jobs or Listeners, at most `User` in `App\Models`.
+`tests/Unit/ArchitectureTest.php` (published by `php artisan agents:install`) enforces these rules: module core (every folder but `Http` and `Livewire`, plus `Domain/Shared`) independent from delivery, thin final controllers that extend no base class, Form Requests in the module `Http` layer, final readonly Actions with `handle()`, readonly DTOs, final events, enums, exceptions, contracts with `@post` and a contract test, Filament grouped by context, no Eloquent writes in delivery code, Jobs or Listeners, at most `User` in `App\Models`.
 
 Keep it up to date. When you add a context, a contract or an invariant, extend the arch rules in the same change, and run it before moving models or adding contexts:
 

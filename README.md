@@ -4,8 +4,8 @@
 
 Guidelines for AI coding agents (Claude Code, Codex, Cursor, ...) and quality tooling for Laravel applications organized in DDD-style modules.
 
-- **Guidelines** loaded automatically by [Laravel Boost](https://laravel.com/docs/boost) into `AGENTS.md` and `CLAUDE.md`: principles (KISS, YAGNI, SOLID), modular architecture, TDD, Laravel conventions, ADRs, security, performance, errors and logging, quality tooling, Git, safe migrations, APIs, localization, module READMEs.
-- **Skills** that Boost loads only when the task needs them, to keep the always-on context small: behavioral contracts, domain building blocks, safe migrations, API conventions, ADRs, module READMEs, performance, localization, PHPStan fixes.
+- **Guidelines** loaded automatically by [Laravel Boost](https://laravel.com/docs/boost) into `AGENTS.md` and `CLAUDE.md`: principles (KISS, YAGNI, SOLID, clean code), modular architecture, TDD, Laravel conventions, ADRs, security, performance, errors and logging, quality tooling, Git, safe migrations, APIs, localization, module READMEs.
+- **Skills** that Boost loads only when the task needs them, to keep the always-on context small: Laravel conventions, behavioral contracts, domain building blocks, safe migrations, API conventions, ADRs, module READMEs, performance, localization, PHPStan fixes.
 - **`php artisan agents:install`**: installs Pest, Larastan, Rector and rector-laravel (Pint ships with Laravel) and publishes their configs without overwriting existing files: `pint.json`, `rector.php`, `phpstan.neon`, `tests/Pest.php`, `tests/Unit/ArchitectureTest.php`, `tests/Unit/TranslationsTest.php`, GitHub Actions CI, PR template, `.claude/settings.json` without agent attribution, ADR index, project modules file, composer scripts.
 - **`php artisan agents:markdown`**: writes a complete `AGENTS.md` (guidelines and skills) for projects that do not use Boost.
 
@@ -70,6 +70,10 @@ php artisan vendor:publish --tag=agents-ci --force   # or agents-quality, agents
 ## Commits and PRs in your name
 
 The guidelines forbid the agent to add `Co-Authored-By`, "Generated with..." footers and session links. Claude Code adds attribution on its own: the `.claude/settings.json` published by `agents:install` turns it off (`attribution.commit` and `attribution.pr` empty, `sessionUrl: false`). To get the same in every project, put it in `~/.claude/settings.json`. To keep attribution, install without that group: `--only=quality --only=tests --only=ci --only=docs`.
+
+## Sources
+
+The PHP, Laravel, SQL, SOLID and clean code rules follow the [IxDF handbook](https://handbook.ixdf.org/library/backend/conventions--laravel.html), adapted to the modular layout. Where they differ, the package keeps Laravel's own conventions: Actions expose `handle()`, Form Requests authorize and live in `Http/Requests`, factories live in the module, exceptions keep the `Exception` suffix, translation keys are English source strings and views are kebab-case.
 
 ## Per-project rules
 
