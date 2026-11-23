@@ -73,7 +73,7 @@ The guidelines forbid the agent to add `Co-Authored-By`, "Generated with..." foo
 
 ## Sources
 
-The PHP, Laravel, SQL, SOLID and clean code rules follow the [IxDF handbook](https://handbook.ixdf.org/library/backend/conventions--laravel.html), adapted to the modular layout. Where they differ, the package keeps Laravel's own conventions: Actions expose `handle()`, Form Requests authorize and live in `Http/Requests`, factories live in the module, exceptions keep the `Exception` suffix, translation keys are English source strings and views are kebab-case.
+The PHP, Laravel, SQL, SOLID and clean code rules follow the [IxDF handbook](https://handbook.ixdf.org/library/backend/conventions--laravel.html), adapted to the modular layout. Where they differ, the package keeps its own choices: every application is split into modules, Form Requests live in `Http/Requests` (without `authorize()`, as in IxDF), factories live in the module, exceptions keep the `Exception` suffix, translation keys are English source strings and views are kebab-case.
 
 ## Per-project rules
 
