@@ -4,6 +4,8 @@ Project-specific rules that complement the `rslanzi/laravel-agents` guidelines. 
 
 ## Bounded contexts
 
+The full map, with how modules talk and the external services, is in `docs/architecture.md`.
+
 | Context | Owns | Talks to |
 | --- | --- | --- |
 | `Example` | What this module is responsible for | Events/contracts it uses |

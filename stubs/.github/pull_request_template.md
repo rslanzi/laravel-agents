@@ -26,4 +26,5 @@
 - [ ] Architecture tests updated if boundaries changed
 - [ ] Migrations are backward compatible and non-destructive (or approved)
 - [ ] Translations added for every new string
-- [ ] Module README / API docs updated if public contracts changed
+- [ ] `CHANGELOG.md` updated under Unreleased, or no visible change
+- [ ] Module README, `docs/architecture.md` and API docs updated if public contracts or module wiring changed

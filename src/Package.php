@@ -21,7 +21,7 @@ final class Package
         'tests' => ['tests/Pest.php', 'tests/Unit/ArchitectureTest.php', 'tests/Unit/TranslationsTest.php'],
         'ci' => ['.github/workflows/ci.yml', '.github/pull_request_template.md'],
         'claude' => ['.claude/settings.json'],
-        'docs' => ['.ai/guidelines/20-project-contexts.md', 'docs/adr/README.md'],
+        'docs' => ['.ai/guidelines/20-project-contexts.md', 'docs/adr/README.md', 'docs/architecture.md', 'CHANGELOG.md'],
     ];
 
     public static function path(string $relative = ''): string
