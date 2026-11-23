@@ -23,14 +23,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - php: '8.3'
-            laravel: '12'
-          - php: '8.5'
-            laravel: '12'
-          - php: '8.3'
-            laravel: '13'
-          - php: '8.4'
-            laravel: '13'
           - php: '8.5'
             laravel: '13'
           # Nightly build of the next PHP version: reported, never blocking.

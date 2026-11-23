@@ -11,11 +11,8 @@ Linee guida per agenti AI (Claude Code, Codex, Cursor, ...) e tooling di qualit�
 
 ## Avvio rapido
 
-Il pacchetto non è ancora su Packagist. Finché non lo è, aggiungi il repository al `composer.json` del progetto:
-
 ```bash
-composer config repositories.laravel-agents vcs https://github.com/rslanzi/laravel-agents
-composer require --dev rslanzi/laravel-agents:dev-main
+composer require --dev rslanzi/laravel-agents
 composer require --dev laravel/boost          # se non è già installato
 
 php artisan boost:install                     # seleziona rslanzi/laravel-agents tra i pacchetti
@@ -47,7 +44,7 @@ La documentazione completa è in inglese:
 
 ## Versioni di PHP
 
-PHP 8.3, 8.4 e 8.5 sono testati a ogni modifica, con Laravel 12 e 13. PHP 8.6 gira sulla build nightly in un job che non blocca, così le incompatibilità emergono prima del rilascio.
+Il pacchetto richiede PHP 8.5 e Laravel 13, e a ogni modifica è testato su queste versioni (dipendenze minime e più recenti). I progetti su PHP 8.3 o 8.4, o su Laravel 12, restano alla versione 1. PHP 8.6 gira sulla build nightly in un job che non blocca, così le incompatibilità emergono prima del rilascio.
 
 ## Licenza
 
