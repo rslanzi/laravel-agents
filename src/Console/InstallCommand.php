@@ -131,7 +131,11 @@ final class InstallCommand extends Command
 
             $this->components->info('Running boost:install: select rslanzi/laravel-agents among the packages.');
 
-            if (! $this->artisanProcess(['boost:install'], interactive: true) || ! $filesystem->exists(base_path('boost.json'))) {
+            // boost:install runs in another process: check the file again instead of reusing the answer above.
+            $installed = $this->artisanProcess(['boost:install'], interactive: true);
+            clearstatcache();
+
+            if (! $installed || ! is_file(base_path('boost.json'))) {
                 $this->components->warn('boost:install did not complete.');
 
                 return false;
