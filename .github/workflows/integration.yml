@@ -14,6 +14,10 @@ jobs:
   fresh-app:
     name: Fresh Laravel ${{ matrix.laravel }} on PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental == true }}
+    env:
+      # Lets Composer install on a PHP version dependencies do not declare yet (8.6 nightly).
+      COMPOSER_IGNORE_PLATFORM_REQ: ${{ matrix.experimental == true && 'php+' || '' }}
 
     strategy:
       fail-fast: false
@@ -21,10 +25,18 @@ jobs:
         include:
           - php: '8.3'
             laravel: '12'
+          - php: '8.5'
+            laravel: '12'
           - php: '8.3'
             laravel: '13'
           - php: '8.4'
             laravel: '13'
+          - php: '8.5'
+            laravel: '13'
+          # Nightly build of the next PHP version: reported, never blocking.
+          - php: '8.6'
+            laravel: '13'
+            experimental: true
 
     steps:
       - uses: actions/checkout@v5

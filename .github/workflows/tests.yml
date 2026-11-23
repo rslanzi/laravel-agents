@@ -37,6 +37,25 @@ jobs:
 
       - run: vendor/bin/pest
 
+  next-php:
+    # PHP 8.6 is still in development: run the suite on its nightly build to see breakages early,
+    # without blocking pull requests.
+    name: PHP 8.6 (nightly), Laravel 13
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.6'
+          coverage: none
+
+      - run: composer update --prefer-dist --no-interaction --no-progress --ignore-platform-req=php+
+
+      - run: vendor/bin/pest
+
   quality:
     runs-on: ubuntu-latest
 

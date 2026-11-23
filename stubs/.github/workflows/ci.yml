@@ -12,15 +12,27 @@ concurrency:
 
 jobs:
   quality:
+    name: quality (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # The lowest PHP version composer.json allows (what production may run) and the latest
+        # stable one (what you will upgrade to). Add a version when a new PHP release comes out.
+        php: [lowest, '8.5']
 
     steps:
       - uses: actions/checkout@v5
 
-      # Test on the lowest PHP version composer.json allows, the one production may run.
-      - name: Read the PHP version from composer.json
+      - name: Resolve the PHP version
         id: php
-        run: echo "version=$(jq -r '.require.php' composer.json | grep -oE '[0-9]+\.[0-9]+' | head -n 1)" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ "${{ matrix.php }}" = lowest ]; then
+            echo "version=$(jq -r '.require.php' composer.json | grep -oE '[0-9]+\.[0-9]+' | head -n 1)" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ matrix.php }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -35,8 +47,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
-          restore-keys: composer-${{ runner.os }}-
+          key: composer-${{ runner.os }}-${{ steps.php.outputs.version }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-${{ steps.php.outputs.version }}-
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 
@@ -85,8 +97,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
-          restore-keys: composer-${{ runner.os }}-
+          key: composer-${{ runner.os }}-${{ steps.php.outputs.version }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-${{ steps.php.outputs.version }}-
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 

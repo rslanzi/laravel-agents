@@ -27,7 +27,7 @@ Prefer the composer scripts when they exist:
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` has two jobs, on the lowest PHP version `composer.json` allows. `quality` runs `composer check` on every pull request and on `main`; `mutation` runs `composer test:mutate` on pull requests. A PR is mergeable only when both are green; make them required status checks in the repository's branch protection.
+`.github/workflows/ci.yml` has two jobs. `quality` runs `composer check` on every pull request and on `main`, on the lowest PHP version `composer.json` allows and on the latest stable PHP; `mutation` runs `composer test:mutate` on pull requests. Code must run on every PHP version in that range: do not use a newer language feature than the lowest version allows (Rector reads the constraint from `composer.json`). A PR is mergeable only when both are green; make them required status checks in the repository's branch protection.
 
 ## Rules
 
