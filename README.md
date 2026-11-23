@@ -11,11 +11,8 @@ Guidelines for AI coding agents (Claude Code, Codex, Cursor, ...) and quality to
 
 ## Quick start
 
-The package is not on Packagist yet. Until it is, add the repository to the project's `composer.json`:
-
 ```bash
-composer config repositories.laravel-agents vcs https://github.com/rslanzi/laravel-agents
-composer require --dev rslanzi/laravel-agents:dev-main
+composer require --dev rslanzi/laravel-agents
 composer require --dev laravel/boost          # if it is not installed yet
 
 php artisan boost:install                     # select rslanzi/laravel-agents among the packages
