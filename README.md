@@ -42,7 +42,7 @@ To update: `composer update rslanzi/laravel-agents && php artisan boost:update`,
 
 ## PHP support
 
-The package requires PHP 8.5 and Laravel 13, and is tested on them on every change (lowest and latest dependencies). Projects on PHP 8.3 or 8.4, or on Laravel 12, stay on version 1. PHP 8.6 runs on its nightly build in a non-blocking job, so incompatibilities show up before its release.
+The package requires PHP 8.5 and Laravel 13, and is tested on them on every change (lowest and latest dependencies). Projects on PHP 8.3 or 8.4, or on Laravel 12, stay on 0.1 (`^0.1.0`). PHP 8.6 runs on its nightly build in a non-blocking job, so incompatibilities show up before its release.
 
 ## License
 
