@@ -168,12 +168,12 @@ final readonly class ComposerJson
         preg_match_all('/"(?:[^"\\\\]|\\\\.)*"|[{}\[\],:]/', $this->source, $tokens, PREG_OFFSET_CAPTURE);
 
         $depth = 0;
-        $previous = null;
+        $previous = '';
         $key = null;
         $scriptsOpen = null;
 
         foreach ($tokens[0] as [$token, $offset]) {
-            if ($token === ':' && $depth === 1 && $previous !== null && str_starts_with($previous, '"')) {
+            if ($token === ':' && $depth === 1 && str_starts_with($previous, '"')) {
                 $key = json_decode($previous);
             } elseif ($token === '{' || $token === '[') {
                 if ($depth === 1 && $token === '{' && $key === 'scripts' && $scriptsOpen === null) {
