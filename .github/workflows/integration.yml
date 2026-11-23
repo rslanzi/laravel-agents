@@ -67,7 +67,7 @@ jobs:
           if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
           npm run build
 
-      # A fresh skeleton covers 33% of app/ (User is untested): write the first test, as a project would.
+      # A fresh skeleton covers 33% of app/ and no test declares covers(): write the first test, as a project would.
       - name: Add a first test for the User model
         working-directory: app
         run: |
@@ -77,13 +77,22 @@ jobs:
           declare(strict_types=1);
 
           use App\Models\User;
+          use Illuminate\Support\Facades\Hash;
 
-          it('hashes the password and hides it from serialization', function (): void {
-              $user = User::factory()->create(['password' => 'secret', 'email_verified_at' => '2026-01-01 10:00:00']);
+          covers(User::class);
 
-              expect($user->password)->not->toBe('secret')
-                  ->and($user->email_verified_at)->toBeInstanceOf(DateTimeInterface::class)
-                  ->and($user->toArray())->not->toHaveKey('password');
+          it('mass assigns, hashes, casts and hides the user attributes', function (): void {
+              $user = User::query()->create(['name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'secret']);
+              $user->forceFill(['email_verified_at' => '2026-01-01 10:00:00', 'remember_token' => 'token'])->save();
+
+              $fresh = $user->fresh();
+
+              expect($fresh->name)->toBe('Ada')
+                  ->and($fresh->email)->toBe('ada@example.com')
+                  ->and(Hash::check('secret', $fresh->password))->toBeTrue()
+                  ->and($fresh->email_verified_at)->toBeInstanceOf(DateTimeInterface::class)
+                  ->and($fresh->toArray())->not->toHaveKey('password')
+                  ->and($fresh->toArray())->not->toHaveKey('remember_token');
           });
           PHP
 
