@@ -11,7 +11,7 @@ it('writes a standalone AGENTS.md with every guideline', function (): void {
         ->toStartWith('# AGENTS.md')
         ->toContain('## Working Agreement and Agent Boundaries')
         ->toContain('## Modular Architecture')
-        ->toContain('## Module Documentation');
+        ->toContain('## Documentation');
 });
 
 it('demotes headings outside code blocks only', function (): void {

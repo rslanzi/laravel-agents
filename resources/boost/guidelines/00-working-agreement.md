@@ -18,7 +18,7 @@ While writing code:
 Before finishing:
 
 7. Run Rector, Pint, PHPStan and Pest in this order (`composer fix` if defined), including `tests/Unit/ArchitectureTest.php`. All must be green, without ignores or skipped tests.
-8. If the change involves an architectural decision (see "Architecture Decision Records"), write or update the ADR in `docs/adr/` in the same change. Update the module `README.md`, translations and API docs when the change touches what they describe.
+8. If the change involves an architectural decision (see "Architecture Decision Records"), write or update the ADR in `docs/adr/` in the same change. Update the module `README.md`, `docs/architecture.md`, translations and API docs when the change touches what they describe, and add the `CHANGELOG.md` entry (see "Documentation").
 9. End with the final summary described below.
 
 ## Agent boundaries
