@@ -53,7 +53,7 @@ Most tests are feature tests. Do not test Laravel itself (that a `belongsTo` wor
 Coverage says which lines ran; mutation testing says whether the tests would notice if they were wrong. Both have minimums enforced in CI.
 
 - **Coverage**: `vendor/bin/pest --coverage --min=80` (needs PCOV or Xdebug). The threshold is a floor for the whole suite, not a target: new code in the domain core (Actions, aggregates, Services, StateMachines) should be close to 100%.
-- **Mutation testing**: `vendor/bin/pest --mutate --min=70`. Pest mutates only code that tests declare they cover, so every test file for a core class declares it at the top:
+- **Mutation testing**: `vendor/bin/pest --mutate --covered-only --min=70` (mutants on lines no test executes, such as property defaults, are left to the coverage threshold). Pest mutates only code that tests declare they cover, so every test file for a core class declares it at the top:
 
   ```php
   covers(ConfirmOrderAction::class);
