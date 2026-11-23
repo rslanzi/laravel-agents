@@ -2,25 +2,21 @@
 
 ## Do things the Laravel way
 
-- Use `php artisan make:*` to create files (models, migrations, tests, policies, Form Requests, events, listeners, jobs) and pass `--no-interaction`. Then move domain classes into their context namespace under `app/Domain/{Context}`. For a generic class use `php artisan make:class`.
+- After `php artisan make:*`, move domain classes into their context namespace under `app/Domain/{Context}`.
 - Validate input with Form Requests in `app/Domain/{Context}/Http/Requests` (controllers) or `validate()` rules (Livewire). Validation rules are arrays, not pipe strings. A Form Request exposes a `toData()` method that returns the DTO for the Action.
 - Authorize with Policies and Gates, never with ad-hoc `if ($user->role === ...)` checks. No code path is "covered" by a missing check.
-- Use named routes and `route()` for URLs. For APIs use Eloquent API Resources and versioned routes.
 - Read configuration with `config()`. `env()` is only allowed inside `config/` files.
 - Use queues for slow or external work (mail, webhooks, PDFs, third-party APIs). Jobs are idempotent and delegate writes to Actions.
 - Use Laravel's HTTP client, Storage, Cache, Mail and Notification facades through their testable fakes; wrap external services behind a `Contract`.
-- Check the installed package versions (`composer show --direct`, `package.json`) and use the matching API. Do not change dependencies without approval.
 - Do not create new top-level folders, verification scripts or documentation files unless asked.
 
 ## PHP style
 
 - Every PHP file starts with `declare(strict_types=1);`.
-- Full parameter and return types everywhere, including `__invoke()`/`handle()` and closures. Avoid `mixed`. Use PHPDoc only for generics and array shapes (`@return Collection<int, Order>`, `@param array{name: string, email: string} $data`).
+- Full parameter and return types everywhere, closures included. Avoid `mixed`. PHPDoc only for generics and array shapes (`@return Collection<int, Order>`).
 - Classes are `final` by default (Actions, Services, Models, Listeners, Jobs). DTOs and value objects are `readonly`.
-- Constructor property promotion; no empty constructors.
 - Properties and methods are `private` unless they need wider visibility.
-- Always use curly braces, early returns, and no `else` after `return`.
-- Enum cases are TitleCase.
+- Early returns, no `else` after `return`.
 - Dates are immutable (`Date::use(CarbonImmutable::class)` in `AppServiceProvider`). Type against `CarbonInterface`.
 
 ## Eloquent
@@ -45,8 +41,3 @@
 - Panel providers live in `app/Providers/Filament`; navigation groups mirror the contexts; dashboards that combine several modules sit at the root of `app/Filament/Pages`.
 - Put each chained method of a Filament component on its own line, and leave a blank line between components.
 - Build `Select`/`SelectFilter` options from `Enum::cases()`, never hand-typed arrays.
-
-## Formatting
-
-- After changing PHP files run `vendor/bin/pint --dirty --format agent`.
-- If a frontend change does not appear, run `npm run build` or ask the user to run `composer run dev`.

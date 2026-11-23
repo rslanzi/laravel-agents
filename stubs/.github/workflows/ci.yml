@@ -7,51 +7,116 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded runs on branches, never on main.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   quality:
+    name: quality (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        # The lowest PHP version composer.json allows (what production may run) and the latest
+        # stable one (what you will upgrade to). Add a version when a new PHP release comes out.
+        php: [lowest, '8.5']
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      - name: Resolve the PHP version
+        id: php
+        run: |
+          if [ "${{ matrix.php }}" = lowest ]; then
+            echo "version=$(jq -r '.require.php' composer.json | grep -oE '[0-9]+\.[0-9]+' | head -n 1)" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ matrix.php }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'   # match composer.json "require.php"
+          php-version: ${{ steps.php.outputs.version }}
           extensions: mbstring, pdo_sqlite, intl, gd
           coverage: pcov
 
+      - name: Locate the Composer cache
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
       - uses: actions/cache@v4
         with:
-          path: ~/.composer/cache/files
-          key: composer-${{ hashFiles('composer.lock') }}
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ steps.php.outputs.version }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-${{ steps.php.outputs.version }}-
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
+        if: hashFiles('package.json') != ''
         with:
           node-version: 22
-          cache: npm
 
-      - run: npm ci && npm run build
+      - name: Build frontend assets
+        if: hashFiles('package.json') != ''
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+          npm run build
 
       - name: Prepare environment
         run: |
           cp .env.example .env
           php artisan key:generate
 
-      - name: Rector and Pint (read-only)
-        run: composer lint:check
+      # Rector and Pint (read-only), PHPStan, Pest with minimum coverage, composer audit.
+      - name: Quality gates
+        run: composer check
 
-      - name: PHPStan
-        run: composer types:check
+  mutation:
+    # Slower than the other gates, so it runs on pull requests only, in parallel with them.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
 
-      - name: Tests with coverage
-        run: composer test:coverage
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Read the PHP version from composer.json
+        id: php
+        run: echo "version=$(jq -r '.require.php' composer.json | grep -oE '[0-9]+\.[0-9]+' | head -n 1)" >> "$GITHUB_OUTPUT"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ steps.php.outputs.version }}
+          extensions: mbstring, pdo_sqlite, intl, gd
+          coverage: pcov
+
+      - name: Locate the Composer cache
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ steps.php.outputs.version }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-${{ steps.php.outputs.version }}-
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - uses: actions/setup-node@v5
+        if: hashFiles('package.json') != ''
+        with:
+          node-version: 22
+
+      - name: Build frontend assets
+        if: hashFiles('package.json') != ''
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+          npm run build
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
 
       - name: Mutation testing
         run: composer test:mutate
-
-      - name: Dependency audit
-        run: composer deps:check

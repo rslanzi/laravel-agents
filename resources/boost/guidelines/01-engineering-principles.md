@@ -13,7 +13,6 @@ These principles decide every design choice in this project. When two rules seem
 ## YAGNI: you aren't gonna need it
 
 - Do not add interfaces, base classes, configuration options, events or abstraction layers "for later". Add them when a second real use case or a test needs them.
-- Do not add packages or dependencies without the user's approval.
 - Plain CRUD entities without cross-record invariants stay plain Eloquent models. Do not wrap them in repositories, Actions or DTOs until a real invariant or a second caller appears.
 - Do not write code paths, parameters or settings that no test exercises.
 - Delete dead code instead of commenting it out.
@@ -33,7 +32,5 @@ These principles decide every design choice in this project. When two rules seem
 
 ## Naming and readability
 
-- Use descriptive, intention-revealing names: `isRegisteredForDiscounts()`, `CancelOrderAction`, `OpenOrdersForCustomer`.
 - Name Actions as verb + noun + `Action` (`ConfirmOrderAction`), Events in past tense (`OrderConfirmed`), Listeners as what they do (`SendConfirmationEmail`), Queries as what they return (`OverdueInvoices`), Exceptions as what went wrong (`ProductOutOfStockException`).
-- Prefer PHPDoc blocks that explain *why* over inline comments that restate *what*.
-- Follow existing conventions: before creating or editing a file, read sibling files for structure, naming and style.
+- PHPDoc explains *why*, not *what* the code already says.

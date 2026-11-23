@@ -32,7 +32,7 @@ Most tests are feature tests. Do not test Laravel itself (that a `belongsTo` wor
 
 ## How to write tests
 
-- Use Pest. Create tests with `php artisan make:test --pest {Name}` (add `--unit` for unit tests). Do not include the suite folder in the name.
+- Write tests with Pest.
 - Describe behaviour in the test name: `it('rejects an order when a product is out of stock')`.
 - Follow Arrange, Act, Assert, separated by a blank line. One behaviour per test.
 - Build data with factories and their states (`OrderFactory::new()->confirmed()->create()`). Check existing states before setting attributes by hand. Add a factory state when the same setup repeats.
@@ -53,7 +53,7 @@ Most tests are feature tests. Do not test Laravel itself (that a `belongsTo` wor
 Coverage says which lines ran; mutation testing says whether the tests would notice if they were wrong. Both have minimums enforced in CI.
 
 - **Coverage**: `vendor/bin/pest --coverage --min=80` (needs PCOV or Xdebug). The threshold is a floor for the whole suite, not a target: new code in the domain core (Actions, aggregates, Services, StateMachines) should be close to 100%.
-- **Mutation testing**: `vendor/bin/pest --mutate --min=70`. Pest mutates only code that tests declare they cover, so every test file for a core class declares it at the top:
+- **Mutation testing**: `vendor/bin/pest --mutate --covered-only --min=70` (mutants on lines no test executes, such as property defaults, are left to the coverage threshold). Pest mutates only code that tests declare they cover, so every test file for a core class declares it at the top:
 
   ```php
   covers(ConfirmOrderAction::class);

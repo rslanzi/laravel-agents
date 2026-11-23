@@ -2,6 +2,26 @@
 
 declare(strict_types=1);
 
+use Rslanzi\LaravelAgents\Package;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Process\PendingProcess;
+use Illuminate\Support\Facades\Process;
+use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Finder\SplFileInfo;
+use Illuminate\Contracts\Process\ProcessResult;
+use Rslanzi\LaravelAgents\LaravelAgentsServiceProvider;
+
+/**
+ * @return array<string, string> relative path => content hash
+ */
+function snapshotProject(string $root): array
+{
+    return collect((new Filesystem)->allFiles($root, true))
+        ->mapWithKeys(fn (SplFileInfo $file): array => [$file->getRelativePathname() => md5_file($file->getPathname())])
+        ->sortKeys()
+        ->all();
+}
+
 beforeEach(function (): void {
     file_put_contents($this->projectFile('composer.json'), json_encode([
         'name' => 'acme/app',
@@ -72,4 +92,155 @@ it('does not create boost.json when Boost is not configured', function (): void 
     $this->artisan('agents:install', ['--no-tools' => true])->assertSuccessful();
 
     expect($this->projectFile('boost.json'))->not->toBeFile();
+});
+
+it('fails with a clear message when composer.json is missing', function (): void {
+    unlink($this->projectFile('composer.json'));
+
+    $this->artisan('agents:install', ['--no-tools' => true])
+        ->expectsOutputToContain('No composer.json found')
+        ->assertFailed();
+});
+
+it('fails with a clear message when composer.json is invalid', function (): void {
+    file_put_contents($this->projectFile('composer.json'), '{"name": ');
+
+    $this->artisan('agents:install', ['--no-tools' => true])
+        ->expectsOutputToContain('composer.json is not valid JSON')
+        ->assertFailed();
+});
+
+it('keeps the formatting of the rest of composer.json', function (): void {
+    $original = <<<'JSON'
+        {
+            "name": "acme/app",
+            "keywords": ["laravel", "framework"],
+            "scripts": {
+                "test": ["@php artisan test"]
+            }
+        }
+
+        JSON;
+    file_put_contents($this->projectFile('composer.json'), $original);
+
+    $this->artisan('agents:install', ['--no-tools' => true])->assertSuccessful();
+
+    $written = (string) file_get_contents($this->projectFile('composer.json'));
+
+    expect($written)
+        ->toStartWith("{\n    \"name\": \"acme/app\",\n    \"keywords\": [\"laravel\", \"framework\"],\n    \"scripts\": {\n        \"test\": [\"@php artisan test\"],\n        \"lint\": [\n            \"@php vendor/bin/rector process --ansi\",")
+        ->and(json_decode($written, true)['scripts'])->toHaveKeys(['test', 'lint', 'check', 'fix']);
+});
+
+it('publishes only the requested groups', function (): void {
+    $this->artisan('agents:install', ['--no-tools' => true, '--only' => ['ci']])->assertSuccessful();
+
+    expect($this->projectFile('.github/workflows/ci.yml'))->toBeFile()
+        ->and($this->projectFile('pint.json'))->not->toBeFile()
+        ->and($this->projectFile('tests/Pest.php'))->not->toBeFile();
+});
+
+it('rejects an unknown group', function (): void {
+    $this->artisan('agents:install', ['--no-tools' => true, '--only' => ['nope']])
+        ->expectsOutputToContain('Unknown group(s): nope')
+        ->assertFailed();
+
+    expect($this->projectFile('pint.json'))->not->toBeFile();
+});
+
+it('changes nothing in dry-run mode', function (): void {
+    $composer = (string) file_get_contents($this->projectFile('composer.json'));
+    file_put_contents($this->projectFile('boost.json'), '{"guidelines": true}');
+    Process::fake();
+
+    $this->artisan('agents:install', ['--dry-run' => true])->assertSuccessful();
+
+    Process::assertNothingRan();
+    expect(file_get_contents($this->projectFile('composer.json')))->toBe($composer)
+        ->and(file_get_contents($this->projectFile('boost.json')))->toBe('{"guidelines": true}')
+        ->and($this->projectFile('pint.json'))->not->toBeFile();
+});
+
+it('swaps PHPUnit for Pest and installs the missing tools', function (): void {
+    file_put_contents($this->projectFile('composer.json'), json_encode([
+        'name' => 'acme/app',
+        'require-dev' => ['phpunit/phpunit' => '^12.0', 'laravel/pint' => '^1.0'],
+    ], JSON_PRETTY_PRINT));
+    Process::fake();
+
+    $this->artisan('agents:install')->assertSuccessful();
+
+    Process::assertRan(fn (PendingProcess $process): bool => in_array('remove', (array) $process->command, true)
+        && in_array('phpunit/phpunit', (array) $process->command, true));
+    Process::assertRan(fn (PendingProcess $process): bool => in_array('require', (array) $process->command, true)
+        && in_array('pestphp/pest', (array) $process->command, true)
+        && ! in_array('laravel/pint', (array) $process->command, true));
+});
+
+it('restores composer.json and composer.lock when composer fails', function (): void {
+    file_put_contents($this->projectFile('composer.json'), '{"require-dev": {"phpunit/phpunit": "^12.0"}}');
+    file_put_contents($this->projectFile('composer.lock'), '{"lock": true}');
+
+    Process::fake(function (PendingProcess $process): ProcessResult {
+        // Simulate composer editing composer.json before the require step fails.
+        file_put_contents($this->projectFile('composer.json'), '{"require-dev": {}}');
+
+        return in_array('require', (array) $process->command, true)
+            ? Process::result(errorOutput: 'network down', exitCode: 1)
+            : Process::result();
+    });
+
+    $this->artisan('agents:install')
+        ->expectsOutputToContain('composer.json and composer.lock were restored')
+        ->assertFailed();
+
+    expect(file_get_contents($this->projectFile('composer.json')))->toBe('{"require-dev": {"phpunit/phpunit": "^12.0"}}')
+        ->and(file_get_contents($this->projectFile('composer.lock')))->toBe('{"lock": true}')
+        ->and($this->projectFile('pint.json'))->not->toBeFile();
+});
+
+it('adds the packages key to a boost.json that has none', function (): void {
+    file_put_contents($this->projectFile('boost.json'), '{"guidelines": true}');
+
+    $this->artisan('agents:install', ['--no-tools' => true])->assertSuccessful();
+
+    expect(json_decode((string) file_get_contents($this->projectFile('boost.json')), true)['packages'])
+        ->toBe(['rslanzi/laravel-agents']);
+});
+
+it('is idempotent', function (): void {
+    file_put_contents($this->projectFile('boost.json'), '{"packages": []}');
+    $this->artisan('agents:install', ['--no-tools' => true])->assertSuccessful();
+    $snapshot = snapshotProject($this->projectPath);
+
+    $this->artisan('agents:install', ['--no-tools' => true])->assertSuccessful();
+
+    expect(snapshotProject($this->projectPath))->toBe($snapshot);
+});
+
+it('assigns every stub to exactly one group', function (): void {
+    $stubs = collect((new Filesystem)->allFiles(Package::stubsPath(), true))
+        ->map(fn (SplFileInfo $file): string => str_replace('\\', '/', $file->getRelativePathname()))
+        ->sort()
+        ->values()
+        ->all();
+
+    $grouped = collect(Package::STUB_GROUPS)->flatten()->sort()->values()->all();
+
+    expect($grouped)->toBe($stubs);
+});
+
+it('registers each stub group for vendor:publish', function (): void {
+    $paths = ServiceProvider::pathsToPublish(LaravelAgentsServiceProvider::class, 'agents-quality');
+
+    expect(array_map(fn (string $stub): string => mb_substr($stub, mb_strlen(Package::stubsPath()) + 1), array_keys($paths)))
+        ->toBe(Package::STUB_GROUPS['quality'])
+        ->and(array_map(basename(...), array_values($paths)))->toBe(Package::STUB_GROUPS['quality'])
+        ->and(ServiceProvider::pathsToPublish(LaravelAgentsServiceProvider::class, 'agents'))->toHaveCount(count(Package::STUB_GROUPS, COUNT_RECURSIVE) - count(Package::STUB_GROUPS));
+});
+
+it('publishes a pint.json that is safe on PHP 8.3', function (): void {
+    $pint = json_decode((string) file_get_contents(Package::stubsPath() . '/pint.json'), true);
+
+    expect($pint['rules']['mb_str_functions'])->toBeFalse();
 });

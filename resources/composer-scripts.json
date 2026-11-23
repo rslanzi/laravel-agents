@@ -14,7 +14,7 @@
         "test:arch": [
             "@php artisan test --compact tests/Unit/ArchitectureTest.php"
         ],
-        "test:unit": [
+        "test:all": [
             "@php artisan config:clear --ansi",
             "@php artisan test --compact --parallel"
         ],
@@ -24,10 +24,10 @@
         ],
         "test:mutate": [
             "Composer\\Config::disableProcessTimeout",
-            "@php vendor/bin/pest --mutate --parallel --min=70"
+            "@php vendor/bin/pest --mutate --parallel --covered-only --min=70"
         ],
         "deps:check": [
-            "composer audit"
+            "composer audit --abandoned=report"
         ],
         "check": [
             "Composer\\Config::disableProcessTimeout",
@@ -40,7 +40,7 @@
             "Composer\\Config::disableProcessTimeout",
             "@lint",
             "@types:check",
-            "@test:unit"
+            "@test:all"
         ]
     }
 }
