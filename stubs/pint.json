@@ -22,6 +22,7 @@
             "spacing": "one"
         },
         "date_time_immutable": true,
+        "explicit_string_variable": true,
         "increment_style": {
             "style": "pre"
         },

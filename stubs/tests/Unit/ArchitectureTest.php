@@ -152,9 +152,10 @@ test('presentation and async code delegate Eloquent writes to Actions', function
 });
 
 foreach (domainLayer('Http/Controllers') as $namespace) {
-    arch("controllers are thin and final: {$namespace}")
+    arch("controllers are thin, final and extend nothing: {$namespace}")
         ->expect($namespace)
         ->toBeFinal()
+        ->toExtendNothing()
         ->toHaveSuffix('Controller')
         ->not->toUse(DB::class);
 }
@@ -184,6 +185,12 @@ foreach (domainLayer('Enums') as $namespace) {
     arch("enums are enums: {$namespace}")
         ->expect($namespace)
         ->toBeEnums();
+}
+
+foreach (domainLayer('Events') as $namespace) {
+    arch("events are final: {$namespace}")
+        ->expect($namespace)
+        ->toBeFinal();
 }
 
 foreach (domainLayer('Exceptions') as $namespace) {
