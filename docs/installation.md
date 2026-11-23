@@ -6,11 +6,17 @@ PHP 8.3 or later, Laravel 12 or 13, Composer 2.
 
 ## Install
 
-The package is not on Packagist yet. Until it is, add the repository to the project's `composer.json`:
+```bash
+composer require --dev rslanzi/laravel-agents
+```
+
+This adds `"rslanzi/laravel-agents": "^1.0"` to `require-dev`, so `composer update` takes new minor and patch versions but never a breaking one.
+
+A project that installed the package from GitHub before it was on Packagist can drop the VCS repository and switch to the released version:
 
 ```bash
-composer config repositories.laravel-agents vcs https://github.com/rslanzi/laravel-agents
-composer require --dev rslanzi/laravel-agents:dev-main
+composer config --unset repositories.laravel-agents
+composer require --dev rslanzi/laravel-agents:^1.0
 ```
 
 Then:
@@ -59,7 +65,7 @@ composer update rslanzi/laravel-agents
 php artisan boost:update
 ```
 
-Read [UPGRADE.md](../UPGRADE.md) before a new minor version (while the package is 0.x) or a new major version.
+Read [UPGRADE.md](../UPGRADE.md) before moving to a new major version.
 
 Published files (Rector, PHPStan, CI...) belong to the project and are never updated on their own. To take a newer version of one group, re-publish it and review the diff:
 

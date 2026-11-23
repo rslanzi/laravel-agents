@@ -4,9 +4,9 @@ Breaking changes and how to adapt a project, newest first. Each version also lis
 
 After every update run `composer update rslanzi/laravel-agents`, `php artisan boost:update` and `composer check`.
 
-## Upgrading to 0.1.0 from dev-main
+## Upgrading to 1.0.0 from dev-main
 
-Projects that installed the package from `dev-main` before 0.1.0:
+Projects that installed the package from `dev-main` before 1.0.0 (switch to `^1.0` as described in [docs/installation.md](docs/installation.md)):
 
 - **Actions expose `execute()`** instead of `handle()`. Rename the method and its callers. The published architecture test checks it; if your copy still checks `handle()`, re-publish it with `php artisan vendor:publish --tag=agents-tests --force` and review the diff.
 - **Form Requests have no `authorize()`.** Move each check to the controller (`Gate::authorize('ability', $model)`) or to the route (`->can('ability', 'model')`), then delete the method.
