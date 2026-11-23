@@ -40,7 +40,7 @@ jobs:
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: hashFiles('package.json') != ''
         with:
           node-version: 22
@@ -90,7 +90,7 @@ jobs:
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: hashFiles('package.json') != ''
         with:
           node-version: 22
