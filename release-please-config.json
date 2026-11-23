@@ -3,6 +3,7 @@
     "release-type": "php",
     "include-component-in-tag": false,
     "bump-minor-pre-major": true,
+    "last-release-sha": "3c491827b0a3f400e0ab0e233570cd879077ade3",
     "changelog-sections": [
         {"type": "feat", "section": "Features"},
         {"type": "fix", "section": "Bug Fixes"},
