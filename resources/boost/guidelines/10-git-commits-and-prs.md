@@ -13,7 +13,7 @@ Commits and pull requests are authored by the developer who runs the agent, neve
 
 Format: `type(scope): subject`
 
-- **type**: `feat`, `fix`, `refactor`, `test`, `docs`, `perf`, `build`, `ci`, `chore`, `revert`. Use `feat!` / `fix!` or a `BREAKING CHANGE:` footer for breaking changes.
+- **type**: `feat`, `fix`, `refactor`, `style`, `test`, `docs`, `perf`, `build`, `ci`, `chore`, `revert`. Use `feat!` / `fix!` or a `BREAKING CHANGE:` footer for breaking changes.
 - **scope**: the bounded context in kebab-case (`ordering`, `billing`), or `deps`, `ci`, `arch` for cross-cutting changes.
 - **subject**: imperative, lower case, no final period, max ~72 characters: `feat(ordering): allow partial shipment of confirmed orders`.
 - **body** (optional): why the change was made and what it affects, wrapped at 72 columns. Reference the ADR (`Refs: ADR-0007`) and the issue (`Closes #123`).

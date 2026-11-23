@@ -32,7 +32,7 @@ Most tests are feature tests. Do not test Laravel itself (that a `belongsTo` wor
 
 ## How to write tests
 
-- Use Pest. Create tests with `php artisan make:test --pest {Name}` (add `--unit` for unit tests). Do not include the suite folder in the name.
+- Write tests with Pest.
 - Describe behaviour in the test name: `it('rejects an order when a product is out of stock')`.
 - Follow Arrange, Act, Assert, separated by a blank line. One behaviour per test.
 - Build data with factories and their states (`OrderFactory::new()->confirmed()->create()`). Check existing states before setting attributes by hand. Add a factory state when the same setup repeats.

@@ -1,68 +1,93 @@
 # rslanzi/laravel-agents
 
-Linee guida per agenti AI (Claude Code, Codex, Cursor, ...) e tooling di qualità per applicazioni Laravel organizzate a moduli in stile DDD.
+[Italiano](README.it.md)
 
-- **Guideline** caricate in automatico da [Laravel Boost](https://laravel.com/docs/boost) in `AGENTS.md` e `CLAUDE.md`: principi (KISS, YAGNI, SOLID), architettura a moduli, TDD, convenzioni Laravel, ADR, sicurezza, performance, errori e log, quality tooling, Git, migrazioni sicure, API, traduzioni, README dei moduli.
-- **`php artisan agents:install`**: installa Pest, Larastan, Rector e rector-laravel (Pint c'è già in Laravel) e pubblica le config senza sovrascrivere quelle esistenti: `pint.json`, `rector.php`, `phpstan.neon`, `tests/Pest.php`, `tests/Unit/ArchitectureTest.php`, CI GitHub Actions, template PR, `.claude/settings.json` senza attribuzione all'agente, indice ADR, file dei moduli del progetto, script composer.
-- **`php artisan agents:markdown`**: scrive un `AGENTS.md` completo per i progetti che non usano Boost.
+Guidelines for AI coding agents (Claude Code, Codex, Cursor, ...) and quality tooling for Laravel applications organized in DDD-style modules.
 
-## Installazione
+- **Guidelines** loaded automatically by [Laravel Boost](https://laravel.com/docs/boost) into `AGENTS.md` and `CLAUDE.md`: principles (KISS, YAGNI, SOLID), modular architecture, TDD, Laravel conventions, ADRs, security, performance, errors and logging, quality tooling, Git, safe migrations, APIs, localization, module READMEs.
+- **Skills** that Boost loads only when the task needs them, to keep the always-on context small: behavioral contracts, domain building blocks, safe migrations, API conventions, ADRs, module READMEs, performance, localization, PHPStan fixes.
+- **`php artisan agents:install`**: installs Pest, Larastan, Rector and rector-laravel (Pint ships with Laravel) and publishes their configs without overwriting existing files: `pint.json`, `rector.php`, `phpstan.neon`, `tests/Pest.php`, `tests/Unit/ArchitectureTest.php`, `tests/Unit/TranslationsTest.php`, GitHub Actions CI, PR template, `.claude/settings.json` without agent attribution, ADR index, project modules file, composer scripts.
+- **`php artisan agents:markdown`**: writes a complete `AGENTS.md` (guidelines and skills) for projects that do not use Boost.
+
+## Installation
+
+The package is not on Packagist yet. Until it is, add the repository to the project's `composer.json`:
 
 ```bash
-composer require --dev rslanzi/laravel-agents
-composer require --dev laravel/boost          # se non c'è già
+composer config repositories.laravel-agents vcs https://github.com/rslanzi/laravel-agents
+composer require --dev rslanzi/laravel-agents:dev-main
+```
 
-php artisan boost:install                     # scegli rslanzi/laravel-agents tra i pacchetti
-php artisan agents:install                    # tooling e config
+Then:
+
+```bash
+composer require --dev laravel/boost          # if it is not installed yet
+
+php artisan boost:install                     # select rslanzi/laravel-agents among the packages
+php artisan agents:install                    # tooling and configs
 composer fix                                  # Rector, Pint, PHPStan, Pest
 ```
 
-Il pacchetto è su [Packagist](https://packagist.org/packages/rslanzi/laravel-agents). Finché non c'è una release taggata, installa il ramo principale con `composer require --dev rslanzi/laravel-agents:dev-main`.
+If Boost is already configured, `agents:install` adds `rslanzi/laravel-agents` to `boost.json`; then run `php artisan boost:update`.
 
-Se Boost è già configurato, `agents:install` aggiunge `rslanzi/laravel-agents` a `boost.json`; poi basta `php artisan boost:update`.
+`agents:install` options:
 
-Opzioni di `agents:install`:
-
-| Opzione | Effetto |
+| Option | Effect |
 | --- | --- |
-| `--no-tools` | non lancia `composer require` per gli strumenti |
-| `--force` | sovrascrive config e script composer esistenti |
+| `--only=<group>` | publish only one group of files (`quality`, `tests`, `ci`, `claude`, `docs`); repeat it for several |
+| `--dry-run` | show what would change, write nothing |
+| `--no-tools` | do not run `composer require` for the tools |
+| `--force` | overwrite existing configs and composer scripts |
 
-Su un progetto con PHPUnit, `agents:install` rimuove `phpunit/phpunit` dai require-dev perché Pest porta la sua versione. I test PHPUnit esistenti continuano a girare con Pest.
+On a project that uses PHPUnit, `agents:install` removes `phpunit/phpunit` from `require-dev` because Pest brings its own version; existing PHPUnit tests keep running under Pest. If Composer fails, `composer.json` and `composer.lock` are restored.
 
-## Aggiornare le regole in tutti i progetti
+New composer scripts are added to the existing `scripts` section and the rest of `composer.json` is left byte for byte as it was. Only `--force` on a script that already exists rewrites the whole file.
+
+## Updating the rules in every project
 
 ```bash
 composer update rslanzi/laravel-agents
 php artisan boost:update
 ```
 
-Le config pubblicate (rector, phpstan, CI...) restano del progetto: per riprendere le nuove versioni usa `php artisan agents:install --no-tools --force` e controlla il diff.
+Published configs (Rector, PHPStan, CI...) belong to the project. To take a newer version of one group, re-publish it and review the diff:
 
-## Script composer
+```bash
+php artisan vendor:publish --tag=agents-ci --force   # or agents-quality, agents-tests, agents-claude, agents-docs, agents
+```
 
-| Script | Cosa fa |
+## Composer scripts
+
+| Script | What it does |
 | --- | --- |
-| `composer fix` | Rector, Pint, PHPStan, test: da lanciare prima di chiudere un lavoro |
-| `composer check` | gli stessi controlli in sola lettura, con copertura minima e `composer audit`: quello che gira in CI |
-| `composer test:coverage` | Pest con copertura minima 80% (serve PCOV o Xdebug) |
-| `composer test:mutate` | mutation testing con score minimo 70% (serve PCOV o Xdebug) |
-| `composer test:arch` | solo l'architecture test |
+| `composer fix` | Rector, Pint, PHPStan, tests: run it before finishing a task |
+| `composer check` | the same checks read-only, with minimum coverage and `composer audit`: what the CI `quality` job runs |
+| `composer test:all` | the whole suite in parallel |
+| `composer test:coverage` | Pest with 80% minimum coverage (needs PCOV or Xdebug) |
+| `composer test:mutate` | mutation testing with a 70% minimum score (needs PCOV or Xdebug); the CI `mutation` job runs it on pull requests |
+| `composer test:arch` | the architecture test only |
 
-## Commit e PR a tuo nome
+## Commits and PRs in your name
 
-Le guideline vietano all'agente `Co-Authored-By`, footer "Generated with..." e link di sessione. Claude Code aggiunge l'attribuzione da solo: `.claude/settings.json` pubblicato da `agents:install` la disattiva (`attribution.commit` e `attribution.pr` vuoti, `sessionUrl: false`). Per averlo in tutti i progetti mettilo in `~/.claude/settings.json`.
+The guidelines forbid the agent to add `Co-Authored-By`, "Generated with..." footers and session links. Claude Code adds attribution on its own: the `.claude/settings.json` published by `agents:install` turns it off (`attribution.commit` and `attribution.pr` empty, `sessionUrl: false`). To get the same in every project, put it in `~/.claude/settings.json`. To keep attribution, install without that group: `--only=quality --only=tests --only=ci --only=docs`.
 
-## Personalizzare per progetto
+## Per-project rules
 
-Le regole del pacchetto valgono per tutti i progetti. Quelle di un singolo progetto vanno in `.ai/guidelines/20-project-contexts.md` (moduli, glossario, eccezioni), che Boost mette in cima alle istruzioni.
+The package rules apply to every project. A project's own rules go in `.ai/guidelines/20-project-contexts.md` (modules, glossary, exceptions), which Boost puts at the top of the instructions.
 
-## Sviluppo del pacchetto
+## Developing the package
 
-Le guideline sono in `resources/boost/guidelines/`, le config pubblicate in `stubs/`.
+Guidelines live in `resources/boost/guidelines/`, skills in `resources/boost/skills/{name}/SKILL.md`, published files in `stubs/`.
 
 ```bash
 composer install
-vendor/bin/pest
-vendor/bin/pint
+composer test        # Pest
+composer analyse     # PHPStan
+composer format      # Pint
 ```
+
+The `Integration` workflow installs the package into a fresh Laravel application and runs `agents:install` twice (the second run must change nothing), then `composer check` and mutation testing.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

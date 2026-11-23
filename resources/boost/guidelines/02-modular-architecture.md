@@ -31,7 +31,8 @@ app/
 │   │   │   ├── Requests/          # Form Requests: validation + authorization, build the DTO
 │   │   │   ├── Resources/         # Eloquent API Resources
 │   │   │   ├── Middleware/        # only middleware specific to this module
-│   │   │   └── routes.php         # this module's routes
+│   │   │   ├── routes.php         # this module's web routes (web middleware)
+│   │   │   └── api.php            # this module's API routes, if any (api middleware, /api prefix)
 │   │   ├── Jobs/                  # queued work, delegates writes to Actions
 │   │   ├── Listeners/             # react to other contexts' events, delegate writes to Actions
 │   │   ├── Livewire/              # delivery: this module's Livewire components
@@ -56,21 +57,28 @@ routes/
 └── console.php
 ```
 
-Register module routes in `bootstrap/app.php`, so adding a module means adding one line:
+Register module routes once in `bootstrap/app.php`; a new module's routes are then picked up with no extra wiring. Web and API routes are separate files, so API routes never get the session and CSRF of the `web` group:
 
 ```php
+use Illuminate\Support\Facades\Route;
+
 ->withRouting(
     web: __DIR__.'/../routes/web.php',
     commands: __DIR__.'/../routes/console.php',
+    health: '/up',
     then: function (): void {
-        foreach (glob(dirname(__DIR__, 2) . '/app/Domain/*/Http/routes.php') as $routes) {
+        foreach (glob(base_path('app/Domain/*/Http/routes.php')) ?: [] as $routes) {
             Route::middleware('web')->group($routes);
+        }
+
+        foreach (glob(base_path('app/Domain/*/Http/api.php')) ?: [] as $routes) {
+            Route::middleware('api')->prefix('api')->name('api.')->group($routes);
         }
     },
 )
 ```
 
-Use a route name prefix per module (`ordering.orders.show`) and API routes under `Route::prefix('api/v1')->middleware('api')` inside the module's `routes.php` when needed.
+Use a route name prefix per module (`ordering.orders.show`). In `api.php` declare the version: `Route::prefix('v1')->name('v1.')->group(...)` (see "API Conventions").
 
 Create only the sub-folders a context actually needs (YAGNI). An empty `StateMachines/` folder is noise.
 
@@ -81,201 +89,37 @@ Create only the sub-folders a context actually needs (YAGNI). An empty `StateMac
 - **Presentation is thin.** Module controllers, Livewire components, Filament resources and console commands validate input (Form Requests or `validate()`), authorize (policies), build a DTO, call one Action or Query, and return a response. No business rules there.
 - **Delivery serves its own module.** A controller or Livewire component in `Ordering`, or a Filament resource in `app/Filament/Resources/Ordering`, calls Ordering's Actions and Queries. If a screen needs data from several modules, read it through the other modules' Queries; never call another module's Actions from delivery code. A screen that is really about several modules (e.g. the admin dashboard) lives at the root of `app/Filament/Pages` or in the app-wide `app/Livewire`.
 - **Filament follows the contexts without leaving `app/Filament`.** Put every resource, page and widget under the subfolder of its context (`Resources/Ordering/`, `Widgets/Billing/`); the panel's standard `discoverResources()`/`discoverPages()`/`discoverWidgets()` scan subfolders, so nothing else changes. When you generate with `make:filament-*`, give the class its context namespace (or move it right after) so it never stays at the root by mistake. Navigation groups mirror the contexts.
-- **Livewire components live in their module.** Generators write to `app/Livewire`: after generating, move the class into `app/Domain/{Context}/Livewire` and register the module's components in a service provider (namespace or explicit `Livewire::component()`); check the installed Livewire version with `search-docs` for the right API. Blade views stay in `resources/views/{context}/` so Vite and Tailwind keep scanning one place.
+- **Livewire components live in their module.** Class-based components go in `app/Domain/{Context}/Livewire` (generators write to `app/Livewire`: move the class right after) and are registered in a service provider. Livewire 4 single-file or multi-file components live with the views, in `resources/views/{context}/`, under a per-context namespace. The registration API differs between Livewire 3 and 4: check the installed version with `search-docs`. Blade views stay in `resources/views/{context}/` so Vite and Tailwind keep scanning one place.
 - **Only Actions write.** Calls such as `create()`, `save()`, `update()`, `delete()`, `updateOrCreate()` happen inside Actions (or aggregate root methods). Jobs and Listeners delegate writes to Actions. Presentation code never calls Eloquent mutators directly.
 - **Aggregates protect invariants.** When a group of models has cross-record rules (e.g. a stock ledger whose reservations and movements must never take stock below zero), expose a single aggregate root class with intention-revealing methods (`reserve()`, `release()`, `receive()`) and forbid direct writes to its models from outside the context with an architecture test.
-- **Plain CRUD stays plain.** Lookup or reference entities without invariants (e.g. `Country`, `Currency`, `TaxRate`, `Role`) may be edited directly by admin resources. Introduce Actions only when an invariant appears.
+- **Plain CRUD stays plain.** Lookup or reference entities without invariants (e.g. `Country`, `Currency`, `TaxRate`, `Role`) may be edited through Filament's standard create and edit pages, with no Action. Code you write that saves or deletes them (a custom table action, a listener) still goes through an Action, as the architecture test requires. Introduce richer Actions only when an invariant appears.
 - **Contexts talk through events and contracts.**
   - To react to something that happened elsewhere, listen to that context's domain event; register listeners in a service provider.
   - To ask another context for something synchronously, define a small interface in the consuming context's `Contracts/` and implement it in the providing context; bind it in a service provider.
   - Never call another context's Actions directly. Reading another context's Models or Queries is allowed only when the architecture test allows it.
 - **Shared kernel is small and explicit.** Put in `Domain/Shared` only things truly used by many contexts (money/value objects, common enums, plan/module registry). A cross-cutting service that must run inside the same transaction (e.g. an audit log) may be called directly by every context, but must itself not depend on any other context.
 - **Transactions live in Actions.** Wrap multi-step writes in `DB::transaction()` inside the Action. Dispatch events that other contexts react to after commit (`ShouldDispatchAfterCommit` or `DB::afterCommit`) unless the reaction must be atomic with the change.
-- **Factories live with their models.** Factories go in `app/Domain/{Context}/Database/Factories`, declare `protected $model = Model::class;` explicitly, and are called directly: `CustomerFactory::new()->create()`. Models do not use the `HasFactory` trait.
+- **Factories live with their models.** Factories go in `app/Domain/{Context}/Database/Factories`, declare `protected $model = Model::class;` explicitly, and are called directly: `CustomerFactory::new()->create()`. Models do not use the `HasFactory` trait, so `Model::factory()` is not available: when a package or generator needs it (some Filament and seeding tools do), add `HasFactory` with `newFactory()` to that model and note the exception in the module README.
 
 ## Building blocks
 
-### Action
+- **Action**: `final readonly class`, constructor injection, one public `handle()` with full types; takes a DTO or scalar ids, never a `Request`; wraps multi-step writes in `DB::transaction()`; throws a named domain exception instead of returning `false`/`null`.
+- **DTO**: `final readonly class` with promoted public properties.
+- **Controller**: single-action (`__invoke`), final, in `Http/Controllers`; calls one Action or Query.
+- **Form Request**: validation and authorization; `toData()` builds the DTO, so the Action never sees a `Request`.
+- **Query**: reads and returns data, never writes; `query()`, selected columns, eager loading.
 
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace App\Domain\Ordering\Actions;
-
-use App\Domain\Ordering\DTO\ConfirmOrderData;
-use App\Domain\Ordering\Enums\OrderStatus;
-use App\Domain\Ordering\Events\OrderConfirmed;
-use App\Domain\Ordering\Models\Order;
-use App\Domain\Ordering\StateMachines\OrderStateMachine;
-use Illuminate\Support\Facades\DB;
-
-final readonly class ConfirmOrderAction
-{
-    public function __construct(
-        private OrderStateMachine $stateMachine,
-    ) {}
-
-    public function handle(ConfirmOrderData $data): Order
-    {
-        return DB::transaction(function () use ($data): Order {
-            $order = Order::query()->lockForUpdate()->findOrFail($data->orderId);
-
-            $this->stateMachine->transition($order, OrderStatus::Confirmed);
-
-            OrderConfirmed::dispatch($order->id);
-
-            return $order;
-        });
-    }
-}
-```
-
-- `final readonly class`, dependencies injected through the constructor, a single public `handle()` method with full type hints.
-- Accept a DTO (or scalar ids) instead of a `Request` or an array of mixed input.
-- Throw a named domain exception when a business rule is violated; never return `false` or `null` to signal failure.
-
-### DTO
-
-```php
-final readonly class ConfirmOrderData
-{
-    public function __construct(
-        public int $orderId,
-        public ?string $note = null,
-    ) {}
-}
-```
-
-### Controller and Form Request (inside the module)
-
-```php
-namespace App\Domain\Ordering\Http\Controllers;
-
-final class ConfirmOrderController
-{
-    public function __invoke(
-        ConfirmOrderRequest $request,
-        ConfirmOrderAction $confirmOrder,
-    ): RedirectResponse {
-        $order = $confirmOrder->handle($request->toData());
-
-        return to_route('ordering.orders.show', $order);
-    }
-}
-```
-
-```php
-namespace App\Domain\Ordering\Http\Requests;
-
-final class ConfirmOrderRequest extends FormRequest
-{
-    public function authorize(): bool
-    {
-        return $this->user()->can('confirm', $this->route('order'));
-    }
-
-    /** @return array<string, list<string>> */
-    public function rules(): array
-    {
-        return ['note' => ['nullable', 'string', 'max:500']];
-    }
-
-    public function toData(): ConfirmOrderData
-    {
-        return new ConfirmOrderData(
-            orderId: $this->route('order')->id,
-            note: $this->validated('note'),
-        );
-    }
-}
-```
-
-The Form Request turns HTTP input into a DTO, so the Action never sees a `Request`. Single-action controllers (`__invoke`) are preferred; use resource controllers only for plain CRUD.
-
-### Query
-
-A Query class reads and returns data (a model, a collection, a number, a DTO). It never writes and has no side effects. Use `query()`, select the columns you need, and eager load relations.
+Follow the `domain-building-blocks` skill for complete, annotated examples of each.
 
 ### Contract (port) between contexts: a behavioral contract
 
-A contract between modules is more than a method signature. Its PHPDoc states the **behavior** every implementation must honor, and a shared contract test proves it. Callers depend on that behavior, so it is part of the module's public API.
+A contract between modules is an interface in the consuming context's `Contracts/` (suffix `Contract`) whose PHPDoc states the **behavior** every implementation must honor: `@pre`, `@post`, `@throws` and `@event` on every public method. A shared contract test (`tests/Feature/Contracts/{Context}/{ContractName}Test.php`) runs the same expectations on the real implementation and on every fake through a Pest dataset; fakes live in `tests/Fakes/{Context}/`. Changing behavior is a breaking change that needs an ADR.
 
-```php
-namespace App\Domain\Ordering\Contracts;
-
-use App\Domain\Ordering\Exceptions\UnknownProductException;
-
-/**
- * What Ordering needs from stock management. Implemented by the Inventory context.
- */
-interface StockReservationContract
-{
-    /**
-     * Reserves units of a product for an order.
-     *
-     * @pre  $quantity > 0. Called inside the caller's database transaction.
-     * @post On success, available stock is lower by $quantity until release() is called.
-     * @post On null, nothing has changed (no partial reservation).
-     * @return int|null the reservation id, or null when available stock is lower than $quantity
-     *
-     * @throws UnknownProductException when the product does not exist
-     *
-     * @event StockReserved dispatched after commit, on success only
-     */
-    public function reserve(int $productId, int $quantity): ?int;
-
-    /**
-     * Gives the reserved units back to available stock.
-     *
-     * @pre  $reservationId was returned by reserve().
-     * @post Available stock is higher by the reserved quantity. Calling it twice has no further effect (idempotent).
-     *
-     * @event StockReleased dispatched after commit, the first time only
-     */
-    public function release(int $reservationId): void;
-}
-```
-
-Every public method of a `Contract` documents:
-
-- **Preconditions** (`@pre`): what the caller must guarantee (valid ranges, existing records, running inside a transaction).
-- **Postconditions** (`@post`, `@return`): what is true afterwards, including what does *not* change on failure, idempotency, and ordering guarantees.
-- **Exceptions** (`@throws`): every domain exception the caller must handle, and when. Implementations never throw vendor or infrastructure exceptions through a contract: they wrap them in a module exception.
-- **Side effects** (`@event`): events dispatched, and whether before or after commit; any other observable effect (mail, queue, external call).
-
-Rules:
-
-- **One contract test per contract, run against every implementation.** Put it in `tests/Feature/Contracts/{Context}/{ContractName}Test.php` and run the same expectations on the real implementation and on every fake through a Pest dataset. A fake that does not pass the contract test is a bug: tests that use it prove nothing.
-
-  ```php
-  dataset('stock reservation implementations', [
-      'inventory' => fn (): StockReservationContract => app(InventoryStockReservation::class),
-      'fake' => fn (): StockReservationContract => new FakeStockReservation(),
-  ]);
-
-  it('returns null and changes nothing when stock is insufficient', function (StockReservationContract $stock): void {
-      $product = ProductFactory::new()->withStock(2)->create();
-
-      expect($stock->reserve($product->id, 3))->toBeNull()
-          ->and(StockLevel::for($product->id))->toBe(2);
-  })->with('stock reservation implementations');
-
-  it('releases a reservation only once', function (StockReservationContract $stock): void {
-      // ...
-  })->with('stock reservation implementations');
-  ```
-
-- **Fakes live in `tests/Fakes/{Context}/`** and implement the contract, never the concrete class. Use them in other modules' tests instead of mocks of the interface.
-- **Changing behavior is a breaking change.** Strengthening a precondition, weakening a postcondition, adding an exception or changing which events fire requires an ADR and updating every implementation, fake and caller in the same change. Adding a new method or relaxing a precondition is backward compatible but still updates the contract test.
-- **The module README lists its contracts** (provided and required) with a one-line summary of their behavior.
-
-Bind each contract in `AppServiceProvider` (or a dedicated provider) and provide a null implementation, which also passes the contract test, when the providing module is disabled.
+Before writing or changing a contract, its implementations or its fakes, follow the `behavioral-contracts` skill: it has the full rules, an annotated example and the contract test template.
 
 ## Architecture tests are the source of truth
 
-`tests/Unit/ArchitectureTest.php` (published by `php artisan agents:install`) enforces these rules: module core independent from delivery, thin final controllers, Form Requests in the module `Http` layer, final readonly Actions with `handle()`, readonly DTOs, enums, exceptions, Filament grouped by context, no Eloquent writes in delivery code, Jobs or Listeners, only `User` in `App\Models`.
+`tests/Unit/ArchitectureTest.php` (published by `php artisan agents:install`) enforces these rules: module core (every folder but `Http` and `Livewire`, plus `Domain/Shared`) independent from delivery, thin final controllers, Form Requests in the module `Http` layer, final readonly Actions with `handle()`, readonly DTOs, enums, exceptions, contracts with `@post` and a contract test, Filament grouped by context, no Eloquent writes in delivery code, Jobs or Listeners, at most `User` in `App\Models`.
 
 Keep it up to date. When you add a context, a contract or an invariant, extend the arch rules in the same change, and run it before moving models or adding contexts:
 
