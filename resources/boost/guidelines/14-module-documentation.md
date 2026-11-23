@@ -20,15 +20,15 @@ One paragraph: the business capability this module owns and what it explicitly d
 
 ## Aggregates and invariants
 
-- `AggregateRoot`: the rules it protects (e.g. "no overlapping blocks for the same practitioner").
+- `AggregateRoot`: the rules it protects (e.g. "stock can never go below zero").
 
 ## Use cases (Actions)
 
-- `ConfirmAppointmentAction`: what it does, who can trigger it.
+- `ConfirmOrderAction`: what it does, who can trigger it.
 
 ## Published events
 
-- `AppointmentConfirmed`: when it fires, payload, known listeners in other modules.
+- `OrderConfirmed`: when it fires, payload, known listeners in other modules.
 
 ## Consumed events
 
@@ -36,7 +36,7 @@ One paragraph: the business capability this module owns and what it explicitly d
 
 ## Contracts
 
-- Provided: `PackageCoverageContract` implemented here for Booking.
+- Provided: `StockReservationContract` implemented here for Ordering.
 - Required: `SmsGatewayContract`, bound in `AppServiceProvider`.
 
 ## Entry points

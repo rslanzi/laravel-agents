@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Namespaces of one layer across all modules, e.g. ['App\Domain\Booking\Actions', ...].
+ * Namespaces of one layer across all modules, e.g. ['App\Domain\Ordering\Actions', ...].
  * Built from the folders that exist. Each namespace gets its own rule: Pest evaluates a list of
  * targets unreliably with not->toUse(), and an empty list fails.
  *
@@ -136,10 +136,10 @@ test('only User lives in App\Models', function (): void {
 
 // Add rules for real invariants and cross-module boundaries as the project grows, e.g.:
 //
-// arch('Scheduling models are only mutated inside Scheduling')
-//     ->expect('App\Domain\Scheduling\Models')
-//     ->toOnlyBeUsedIn('App\Domain\Scheduling');
+// arch('Inventory models are only mutated inside Inventory')
+//     ->expect('App\Domain\Inventory\Models')
+//     ->toOnlyBeUsedIn('App\Domain\Inventory');
 //
-// arch('Billing never calls Booking actions, it reacts to its events')
+// arch('Billing never calls Ordering actions, it reacts to its events')
 //     ->expect('App\Domain\Billing')
-//     ->not->toUse('App\Domain\Booking\Actions');
+//     ->not->toUse('App\Domain\Ordering\Actions');

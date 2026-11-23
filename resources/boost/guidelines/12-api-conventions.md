@@ -5,8 +5,8 @@ Applies to JSON APIs exposed by modules (`app/Domain/{Context}/Http`). Follow ex
 ## Routes and versioning
 
 - Prefix every API route with the version: `/api/v1/...`, registered in the module's `routes.php` inside `Route::prefix('api/v1')->middleware('api')`. Route names: `api.v1.{context}.{resource}.{action}`.
-- Resources are plural nouns in kebab-case (`/api/v1/appointments`, `/api/v1/patients/{patient}/documents`). Nest only one level.
-- Use HTTP verbs for actions on resources; for domain operations that are not CRUD use an explicit sub-resource verb: `POST /api/v1/appointments/{appointment}/confirm`.
+- Resources are plural nouns in kebab-case (`/api/v1/orders`, `/api/v1/customers/{customer}/addresses`). Nest only one level.
+- Use HTTP verbs for actions on resources; for domain operations that are not CRUD use an explicit sub-resource verb: `POST /api/v1/orders/{order}/confirm`.
 - A breaking change (removed field, changed type or meaning, new required input) requires a new version (`v2`) living side by side; additive changes (new optional field, new endpoint) stay in the same version.
 - Authenticate with Sanctum (tokens or SPA cookies). Apply `throttle:api` (or a named limiter) to every API route.
 
@@ -26,8 +26,8 @@ Applies to JSON APIs exposed by modules (`app/Domain/{Context}/Http`). Follow ex
 
 - Every collection endpoint is paginated: `?page[number]=` / `?page[size]=` or Laravel's `?page=&per_page=` (pick one per project and keep it). Cap `per_page` (e.g. max 100). Use cursor pagination for large or fast-changing lists.
 - Filters: `?filter[status]=confirmed&filter[from]=2026-11-01`, validated against an allow-list.
-- Sorting: `?sort=-starts_at,patient_name` (minus for descending), allow-listed columns only.
-- Includes: `?include=patient,service`, allow-listed relations only, mapped to `with()`.
+- Sorting: `?sort=-starts_at,customer_name` (minus for descending), allow-listed columns only.
+- Includes: `?include=customer,items`, allow-listed relations only, mapped to `with()`.
 
 ## Errors
 
@@ -35,9 +35,9 @@ One error format for the whole API, produced in `bootstrap/app.php` `->withExcep
 
 ```json
 {
-  "message": "The selected slot is no longer available.",
-  "code": "booking.slot_no_longer_available",
-  "errors": { "starts_at": ["The selected slot is no longer available."] }
+  "message": "The product is out of stock.",
+  "code": "ordering.product_out_of_stock",
+  "errors": { "items.0.quantity": ["The product is out of stock."] }
 }
 ```
 

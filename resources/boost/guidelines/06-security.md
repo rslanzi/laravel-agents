@@ -11,7 +11,7 @@ Configure once in `AppServiceProvider` and never bypass elsewhere:
 
 ## Checklist for every change
 
-- **Authorization**: every controller action, Livewire action and Filament resource is covered by a Policy or Gate (`authorize()` in Form Requests, `$this->authorize()` in Livewire, policies on Filament resources). Test the forbidden case, not only the allowed one. Scope queries to what the user may see (tenant, clinic, owner), never only hide it in the UI.
+- **Authorization**: every controller action, Livewire action and Filament resource is covered by a Policy or Gate (`authorize()` in Form Requests, `$this->authorize()` in Livewire, policies on Filament resources). Test the forbidden case, not only the allowed one. Scope queries to what the user may see (tenant, team, owner), never only hide it in the UI.
 - **Never trust ids from the client.** Resolve models through route model binding scoped to the user (`scopeBindings()`, relation-scoped queries) and authorize them.
 - **Mass assignment**: list fillable attributes explicitly; never pass `$request->all()` to `create()`/`update()`. Build DTOs from `validated()` data only.
 - **Validation**: validate every input, including query parameters, file uploads and webhook payloads. Prefer allow-lists (`Rule::in(Enum::cases())`, `Rule::enum()`).

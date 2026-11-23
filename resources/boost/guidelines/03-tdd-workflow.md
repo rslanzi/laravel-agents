@@ -32,12 +32,12 @@ Most tests are feature tests. Do not test Laravel itself (that a `belongsTo` wor
 ## How to write tests
 
 - Use Pest. Create tests with `php artisan make:test --pest {Name}` (add `--unit` for unit tests). Do not include the suite folder in the name.
-- Describe behaviour in the test name: `it('rejects a booking when the slot is no longer available')`.
+- Describe behaviour in the test name: `it('rejects an order when a product is out of stock')`.
 - Follow Arrange, Act, Assert, separated by a blank line. One behaviour per test.
-- Build data with factories and their states (`AppointmentFactory::new()->confirmed()->create()`). Check existing states before setting attributes by hand. Add a factory state when the same setup repeats.
+- Build data with factories and their states (`OrderFactory::new()->confirmed()->create()`). Check existing states before setting attributes by hand. Add a factory state when the same setup repeats.
 - Freeze time with `Carbon::setTestNow()` (or `$this->travelTo()`) whenever behaviour depends on dates, and reset it after.
 - Fake the edges, not the domain: `Mail::fake()`, `Notification::fake()`, `Queue::fake()`, `Event::fake([OnlyThisEvent::class])`, `Http::fake()`, and fake implementations of `Contracts`. Never mock the Action under test or Eloquent models.
-- Assert outcomes, not implementation: database state (`assertDatabaseHas`), dispatched events, thrown exceptions (`->throws(SlotNoLongerAvailableException::class)`), HTTP status and redirects.
+- Assert outcomes, not implementation: database state (`assertDatabaseHas`), dispatched events, thrown exceptions (`->throws(ProductOutOfStockException::class)`), HTTP status and redirects.
 - Tests must be independent and runnable in parallel. No reliance on test order, shared static state or real external services.
 - Do not delete or skip existing tests without the user's approval. A red test is a signal, not an obstacle.
 
@@ -55,9 +55,9 @@ Coverage says which lines ran; mutation testing says whether the tests would not
 - **Mutation testing**: `vendor/bin/pest --mutate --min=70`. Pest mutates only code that tests declare they cover, so every test file for a core class declares it at the top:
 
   ```php
-  covers(ConfirmAppointmentAction::class);
+  covers(ConfirmOrderAction::class);
   // or, for tests that exercise a class through other entry points:
-  mutates(AppointmentStateMachine::class);
+  mutates(OrderStateMachine::class);
   ```
 
 - When a mutant survives, add or sharpen an assertion (boundary values, the exact exception, the exact persisted state). Do not delete the `covers()` to make it go away.

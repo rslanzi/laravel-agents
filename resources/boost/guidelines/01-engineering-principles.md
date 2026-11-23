@@ -33,7 +33,7 @@ These principles decide every design choice in this project. When two rules seem
 
 ## Naming and readability
 
-- Use descriptive, intention-revealing names: `isRegisteredForDiscounts()`, `CancelAppointmentAction`, `UpcomingAppointmentsForPatient`.
-- Name Actions as verb + noun + `Action` (`ConfirmAppointmentAction`), Events in past tense (`AppointmentConfirmed`), Listeners as what they do (`SendConfirmationEmail`), Queries as what they return (`OverdueInvoices`), Exceptions as what went wrong (`SlotNoLongerAvailableException`).
+- Use descriptive, intention-revealing names: `isRegisteredForDiscounts()`, `CancelOrderAction`, `OpenOrdersForCustomer`.
+- Name Actions as verb + noun + `Action` (`ConfirmOrderAction`), Events in past tense (`OrderConfirmed`), Listeners as what they do (`SendConfirmationEmail`), Queries as what they return (`OverdueInvoices`), Exceptions as what went wrong (`ProductOutOfStockException`).
 - Prefer PHPDoc blocks that explain *why* over inline comments that restate *what*.
 - Follow existing conventions: before creating or editing a file, read sibling files for structure, naming and style.

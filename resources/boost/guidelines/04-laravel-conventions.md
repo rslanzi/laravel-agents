@@ -15,7 +15,7 @@
 ## PHP style
 
 - Every PHP file starts with `declare(strict_types=1);`.
-- Full parameter and return types everywhere, including `__invoke()`/`handle()` and closures. Avoid `mixed`. Use PHPDoc only for generics and array shapes (`@return Collection<int, Appointment>`, `@param array{name: string, email: string} $data`).
+- Full parameter and return types everywhere, including `__invoke()`/`handle()` and closures. Avoid `mixed`. Use PHPDoc only for generics and array shapes (`@return Collection<int, Order>`, `@param array{name: string, email: string} $data`).
 - Classes are `final` by default (Actions, Services, Models, Listeners, Jobs). DTOs and value objects are `readonly`.
 - Constructor property promotion; no empty constructors.
 - Properties and methods are `private` unless they need wider visibility.
