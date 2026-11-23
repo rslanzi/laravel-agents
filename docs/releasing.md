@@ -11,19 +11,19 @@ composer analyse     # PHPStan
 composer format      # Pint
 ```
 
-The `Tests` workflow runs the suite on PHP 8.3 to 8.5 with Laravel 12 and 13, plus a non-blocking PHP 8.6 nightly job. The `Integration` workflow installs the package into a fresh Laravel application and runs `agents:install` twice (the second run must change nothing), then `composer check` and mutation testing.
+The `Tests` workflow runs the suite on PHP 8.5 with Laravel 13, with the lowest and the latest dependencies, plus a non-blocking PHP 8.6 nightly job. The `Integration` workflow installs the package into a fresh Laravel 13 application on PHP 8.5 (and 8.6 nightly, non-blocking) and runs `agents:install` twice (the second run must change nothing), then `composer check` and mutation testing.
 
 ## Commit messages
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/): they decide the next version and the changelog.
 
-| Type | Changelog section | Version bump (0.x) | Version bump (1.0 and later) |
-| --- | --- | --- | --- |
-| `feat` | Features | minor | minor |
-| `fix`, `perf` | Bug Fixes, Performance | patch | patch |
-| `docs` | Guidelines and Documentation | patch | patch |
-| `feat!`, `BREAKING CHANGE:` footer | Breaking changes | minor | major |
-| `ci`, `test`, `refactor`, `chore`, `build`, `style` | hidden | none | none |
+| Type | Changelog section | Version bump |
+| --- | --- | --- |
+| `feat` | Features | minor |
+| `fix`, `perf` | Bug Fixes, Performance | patch |
+| `docs` | Guidelines and Documentation | patch |
+| `feat!`, `BREAKING CHANGE:` footer | Breaking changes | major |
+| `ci`, `test`, `refactor`, `chore`, `build`, `style` | hidden | none |
 
 Guideline and skill changes change how agents work in every project, so they are `docs` at least, `feat` when they add a rule, and breaking when an existing project would fail its checks after updating. Every breaking change also gets a section in [UPGRADE.md](../UPGRADE.md).
 
