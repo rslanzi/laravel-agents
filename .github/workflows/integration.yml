@@ -67,6 +67,26 @@ jobs:
           if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
           npm run build
 
+      # A fresh skeleton covers 33% of app/ (User is untested): write the first test, as a project would.
+      - name: Add a first test for the User model
+        working-directory: app
+        run: |
+          cat > tests/Feature/UserTest.php <<'PHP'
+          <?php
+
+          declare(strict_types=1);
+
+          use App\Models\User;
+
+          it('hashes the password and hides it from serialization', function (): void {
+              $user = User::factory()->create(['password' => 'secret', 'email_verified_at' => '2026-01-01 10:00:00']);
+
+              expect($user->password)->not->toBe('secret')
+                  ->and($user->email_verified_at)->toBeInstanceOf(DateTimeInterface::class)
+                  ->and($user->toArray())->not->toHaveKey('password');
+          });
+          PHP
+
       - name: Apply Rector and Pint once
         working-directory: app
         run: composer lint

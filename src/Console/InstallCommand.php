@@ -87,7 +87,7 @@ final class InstallCommand extends Command
                 : 'Run <comment>php artisan boost:install</comment> and select <comment>rslanzi/laravel-agents</comment> to load the guidelines and skills.',
             'Without Boost, run <comment>php artisan agents:markdown</comment> to write a standalone AGENTS.md.',
             'Describe your modules in <comment>.ai/guidelines/20-project-contexts.md</comment>.',
-            'Run <comment>composer fix</comment> and commit the result.',
+            'Run <comment>composer fix</comment> and commit the result. <comment>composer check</comment> needs 80% coverage: on a fresh app, start with a test for the User model.',
         ]);
 
         return self::SUCCESS;
