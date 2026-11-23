@@ -20,6 +20,8 @@ php artisan agents:install                    # tooling e config
 composer fix                                  # Rector, Pint, PHPStan, Pest
 ```
 
+Quando esiste un tag di release (es. `v0.1.0`), usa `rslanzi/laravel-agents:^0.1` al posto di `dev-main`, così gli aggiornamenti arrivano solo con nuove release.
+
 Se Boost è già configurato, `agents:install` aggiunge `rslanzi/laravel-agents` a `boost.json`; poi basta `php artisan boost:update`.
 
 Opzioni di `agents:install`:
