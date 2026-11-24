@@ -8,11 +8,11 @@ metadata:
 
 # API Conventions
 
-Applies to JSON APIs exposed by modules (`app/Domain/{Context}/Http`). Follow existing project conventions if an API already exists.
+Applies to JSON APIs exposed by modules (`app/Domain/{Context}/Http`, routes in `app/Domain/{Context}/Routes/api.php`). Follow existing project conventions if an API already exists.
 
 ## Routes and versioning
 
-- API routes live in the module's `Http/api.php`, which `bootstrap/app.php` loads with the `api` middleware, the `/api` prefix and the `api.` name prefix (see "Modular Architecture"). Inside it, version every route: `Route::prefix('v1')->name('v1.')->group(...)`, giving `/api/v1/...` and names `api.v1.{context}.{resource}.{action}`.
+- API routes live in the module's `Routes/api.php`, which `bootstrap/app.php` loads with the `api` middleware, the `/api` prefix and the `api.` name prefix (see "Modular Architecture"). Inside it, version every route: `Route::prefix('v1')->name('v1.')->group(...)`, giving `/api/v1/...` and names `api.v1.{context}.{resource}.{action}`.
 - Resources are plural nouns in kebab-case (`/api/v1/orders`, `/api/v1/customers/{customer}/addresses`). Nest only one level.
 - Use HTTP verbs for actions on resources; for domain operations that are not CRUD use an explicit sub-resource verb: `POST /api/v1/orders/{order}/confirm`.
 - A breaking change (removed field, changed type or meaning, new required input) requires a new version (`v2`) living side by side; additive changes (new optional field, new endpoint) stay in the same version.

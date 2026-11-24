@@ -27,7 +27,7 @@ The PHP, Laravel, SQL, SOLID and clean code rules follow the [IxDF handbook](htt
 
 - every application is split into modules, whatever its size;
 - Form Requests live in `Http/Requests`;
-- factories live in the module;
+- factories, migrations and seeders live in the module's `Database/` folder, routes in its `Routes/` folder, policies and service providers in the module too;
 - exceptions keep the `Exception` suffix;
 - translation keys are English source strings in `lang/*.json`;
 - views are kebab-case;

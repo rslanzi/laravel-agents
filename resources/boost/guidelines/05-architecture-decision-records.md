@@ -18,4 +18,4 @@ Do **not** write an ADR for routine work that simply follows the existing rules 
 
 ## How
 
-One file per decision in `docs/adr/NNNN-short-title.md`, indexed in `docs/adr/README.md`, in the same change as the code. An ADR you write starts as `Proposed`; only the user marks it `Accepted`. Follow the `writing-adrs` skill for numbering, statuses and the template.
+One file per decision in `docs/adr/NNNN-short-title.md`, indexed in `docs/adr/README.md`, in the same change as the code. An ADR you write starts as `Proposed`; only the user marks it `Accepted`, never the agent, and the index in `docs/adr/README.md` shows the same status as the file. Follow the `writing-adrs` skill for numbering, statuses and the template.
