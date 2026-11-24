@@ -11,6 +11,11 @@ parameters:
 
     # config/ is left out: the framework's own config files use env() values PHPStan cannot type.
 
+    # Larastan reads the schema from the migrations: the framework's and every module's.
+    databaseMigrationsPath:
+        - database/migrations
+        - app/Domain/*/Database/Migrations
+
     # Start at 7 on an existing project, 8+ on a new one. Raise it, never lower it.
     level: 7
 

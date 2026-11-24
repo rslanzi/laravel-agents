@@ -81,4 +81,4 @@ Rules:
 
 The implementation in the providing context delegates its writes to that context's Actions, like any other delivery or async code.
 
-Bind each contract in `AppServiceProvider` (or a dedicated provider) and provide a null implementation, which also passes the contract test, when the providing module is disabled.
+Bind each contract in the consuming module's service provider (`app/Domain/{Context}/Providers/{Context}ServiceProvider.php`) and provide a null implementation, which also passes the contract test, when the providing module is disabled.

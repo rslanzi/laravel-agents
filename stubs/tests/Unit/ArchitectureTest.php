@@ -7,9 +7,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Module core layers: everything in a module except its delivery (Http, Livewire).
+ * Module core layers: everything in a module except its delivery (Http, Routes, Livewire)
+ * and its wiring (Providers), which may reference both rings.
  */
-const CORE_LAYERS = ['Actions', 'Contracts', 'Database', 'DTO', 'Enums', 'Events', 'Exceptions', 'Jobs', 'Listeners', 'Models', 'Queries', 'Services', 'Settings', 'StateMachines'];
+const CORE_LAYERS = ['Actions', 'Contracts', 'Database', 'DTO', 'Enums', 'Events', 'Exceptions', 'Jobs', 'Listeners', 'Models', 'Policies', 'Queries', 'Services', 'Settings', 'StateMachines'];
+
+/**
+ * Folders that have a fixed place in a module: DTO/, Database/Factories, Database/Migrations.
+ */
+const MISPLACED_MODULE_FOLDERS = ['DTOs' => 'DTO', 'Factories' => 'Database/Factories', 'Migrations' => 'Database/Migrations', 'Seeders' => 'Database/Seeders'];
 
 function projectPath(string $relative = ''): string
 {
@@ -116,6 +122,20 @@ test('module core never imports a module delivery namespace', function (): void 
         ->filter(fn (string $file): bool => preg_match('#^use App\\\\Domain\\\\\w+\\\\(Http|Livewire)\\\\#m', (string) file_get_contents($file)) === 1)
         ->values()
         ->all();
+
+    expect($violations)->toBe([]);
+});
+
+test('modules follow the standard layout', function (): void {
+    $violations = [];
+
+    foreach (glob(projectPath('app/Domain/*'), GLOB_ONLYDIR) ?: [] as $module) {
+        foreach (MISPLACED_MODULE_FOLDERS as $folder => $expected) {
+            if (is_dir("{$module}/{$folder}")) {
+                $violations[] = basename($module) . "/{$folder} must be " . basename($module) . "/{$expected}";
+            }
+        }
+    }
 
     expect($violations)->toBe([]);
 });
